@@ -2333,5 +2333,123 @@
       ],
       "allPassed": true
     }
+  },
+  "rom-local-lcd-performance": {
+    "before": {
+      "testedAt": "2026-10-20T16:10:32.146Z",
+      "scope": "User-supplied ROM, fixed-frame Start input, real WASM replication; network-free CPU capacity, not browser/network FPS",
+      "wasmSHA256": "ea5b53500b0b56fc66e7784403b32e52a3afe4abe058f1b536a937c7b3135698",
+      "cases": [
+        {
+          "players": 2,
+          "frames": 600,
+          "elapsedMs": 4356.279130999999,
+          "runMs": 4179.427796999999,
+          "hashMs": 128.219933000001,
+          "runMsPerFrame": 6.965712994999999,
+          "processCpuMsPerFrame": 7.839728333333334,
+          "coreCapacityFps": 143.5603219250925
+        }
+      ]
+    },
+    "after": {
+      "testedAt": "2026-10-20T16:10:36.367Z",
+      "scope": "User-supplied ROM, fixed-frame Start input, real WASM replication; network-free CPU capacity, not browser/network FPS",
+      "wasmSHA256": "a09f4af7fa610b264451b129af316ab20773fa0011b4124cf4b4ec60dc7872a1",
+      "cases": [
+        {
+          "players": 2,
+          "frames": 600,
+          "elapsedMs": 3167.628944,
+          "runMs": 3038.102123000001,
+          "hashMs": 100.22285100000067,
+          "runMsPerFrame": 5.063503538333335,
+          "processCpuMsPerFrame": 6.051966666666666,
+          "coreCapacityFps": 197.49171545541222
+        }
+      ]
+    },
+    "cpuReductionPercent": 22.8,
+    "scope": "Same host, fixed 600-frame Start inputs, supplied translated ROM. Process CPU includes helper/JIT threads; runtime load varies. Not a guaranteed device speedup or physical screen FPS."
+  },
+  "browser-v08-auto": {
+    "testedAt": "2026-10-20T16:11:42.846Z",
+    "coreSHA256": "a09f4af7fa610b264451b129af316ab20773fa0011b4124cf4b4ec60dc7872a1",
+    "scope": "Actual production Chrome host and real WASM Node peer with user ROM through public WSS; intro/main menu only, no completed in-game Multi-Pak battle",
+    "peer": {
+      "testedAt": "2026-10-20T16:11:42.846Z",
+      "scope": "Production Chrome UI host and real WASM Node Worker peer via public WSS; CC0 ROM",
+      "states": [
+        "loading",
+        "auth_sent",
+        "connected",
+        "synchronizing",
+        "calibrating",
+        "playing_online"
+      ],
+      "errors": [
+        "PEER_DISCONNECTED"
+      ],
+      "video": 6049,
+      "metrics": {
+        "type": "metrics",
+        "frames": 6049,
+        "audioFrames": 6604946,
+        "videoCoalesced": 0,
+        "afterReady": 6049,
+        "ready": true,
+        "stateSent": 202,
+        "stateReceived": 202,
+        "stateCheckpoints": 101,
+        "players": 2,
+        "inputDelay": 15,
+        "verifiedFrame": 6000,
+        "frameRate": 59.8,
+        "coreMsPerFrame": 7.51,
+        "inputWaitMsPerFrame": 0.01,
+        "checkpointMs": 8,
+        "background": false
+      }
+    },
+    "allPeerSamples": {
+      "count": 105,
+      "medianFps": 59.7,
+      "minFps": 22.0,
+      "maxFps": 64.9
+    },
+    "browserObservedWindows": [
+      {
+        "simulationFps": 59.3,
+        "drawFps": 57.3,
+        "coreMs": 7.5,
+        "inputWaitMs": 0.3
+      },
+      {
+        "simulationFps": 59.8,
+        "drawFps": 58.8,
+        "coreMs": 7.2,
+        "inputWaitMs": 0.0
+      }
+    ],
+    "selectedDelayFrames": 15,
+    "notes": "Some windows still slow under scheduling/CPU/network pressure. Neither a 60 FPS lock nor physical input-to-photon latency is claimed. Smoothing off. Stopped safely."
+  },
+  "network-calibration-tests": {
+    "roundsPerPeer": 5,
+    "players": [
+      2,
+      3,
+      4
+    ],
+    "reconnectPassed": true,
+    "differentClockAgreementPassed": true,
+    "boundedDelayPassed": true,
+    "missingPeerTimeoutPassed": true,
+    "deferredSnapshotPassed": true,
+    "protocol": "group-v5-calibrated, existing authenticated group-2 envelope",
+    "bufferRange": [
+      8,
+      32
+    ]
   }
 }

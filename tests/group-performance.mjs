@@ -14,10 +14,10 @@ for(const players of (process.env.PLAYERS||'2,4').split(',').map(Number)){
  for(let role=1;role<players;role++){const other=cores[role],b=other.HEAPU8.slice(other._aw_group_snapshot_ptr(),other._aw_group_snapshot_ptr()+other._aw_group_snapshot_size()),p=c._malloc(b.length);c.HEAPU8.set(b,p);check('receive_snapshot',role,p,b.length);c._free(p);}
  check('install');
  function broadcast(){const b=c.HEAPU8.slice(c._aw_group_input_ptr(),c._aw_group_input_ptr()+c._aw_group_input_size()),p=c._malloc(b.length);for(let role=1;role<players;role++){b[1]=role;c.HEAPU8.set(b,p);check('feed_input',role,p,b.length);}c._free(p);}
- check('seed');broadcast();let runMs=0,hashMs=0;const count=Number(process.env.FRAMES||360),start=performance.now();
- for(let frame=0;frame<count;frame++){check('author',process.env.ROM_PATH&&((frame>=120&&frame<132)||(frame>=480&&frame<492))?1<<3:0);broadcast();check('frame_ready');let t=performance.now();check('run');runMs+=performance.now()-t;if((frame+1)%60===0){t=performance.now();assert(c._aw_group_digest());c._aw_group_commit();hashMs+=performance.now()-t;}}
+ check('seed');broadcast();let runMs=0,hashMs=0,runCpuUs=0;const count=Number(process.env.FRAMES||360),start=performance.now();
+ for(let frame=0;frame<count;frame++){check('author',process.env.ROM_PATH&&((frame>=120&&frame<132)||(frame>=480&&frame<492))?1<<3:0);broadcast();check('frame_ready');let t=performance.now();const cpu=process.cpuUsage();check('run');const used=process.cpuUsage(cpu);runCpuUs+=used.user+used.system;runMs+=performance.now()-t;if((frame+1)%60===0){t=performance.now();assert(c._aw_group_digest());c._aw_group_commit();hashMs+=performance.now()-t;}}
  const elapsedMs=performance.now()-start;
- cases.push({players,frames:count,elapsedMs,runMs,hashMs,runMsPerFrame:runMs/count,coreCapacityFps:count*1000/runMs});
+ cases.push({players,frames:count,elapsedMs,runMs,hashMs,runMsPerFrame:runMs/count,processCpuMsPerFrame:runCpuUs/1000/count,coreCapacityFps:count*1000/runMs});
  c._aw_group_stop();for(const core of cores)core._aw_stop();
 }
 const report={testedAt:new Date().toISOString(),scope:process.env.ROM_PATH?'User-supplied ROM, fixed-frame Start input, real WASM replication; network-free CPU capacity, not browser/network FPS':'One real WASM client replicating 2/4 diagnostic GBAs; network-free CPU capacity, not browser/network FPS',wasmSHA256:createHash('sha256').update(wasm).digest('hex'),cases};

@@ -57,7 +57,7 @@ function queueVideo(m,w){
 function showPerformance(m){
  if(!Number.isFinite(m.frameRate))return;
  const now=performance.now(),elapsed=now-lastPaintReport,displayFps=elapsed?painted*1000/elapsed:0,drawMs=painted?paintMs/painted:0;
- $('performance').textContent=`模拟 ${m.frameRate.toFixed(1)} FPS · ${smoothing?'画面':'绘制'} ${displayFps.toFixed(1)} FPS${smoothing?'（含补间）':''} · 核心 ${m.coreMsPerFrame.toFixed(1)} ms/帧 · 等包 ${m.inputWaitMsPerFrame.toFixed(1)} ms/帧`;
+ $('performance').textContent=`模拟 ${m.frameRate.toFixed(1)} FPS · ${smoothing?'画面':'绘制'} ${displayFps.toFixed(1)} FPS${smoothing?'（含补间）':''} · 核心 ${m.coreMsPerFrame.toFixed(1)} ms/帧 · 等包 ${m.inputWaitMsPerFrame.toFixed(1)} ms/帧${mode!=='solo'&&m.inputDelay?' · 缓冲 '+m.inputDelay+' 帧':''}`;
  $('performance-hint').textContent=document.hidden?'后台运行中，浏览器会限制画面刷新。':m.coreMsPerFrame>16?'模拟计算超过每帧预算，设备当前无法满速。':m.inputWaitMsPerFrame>4?'正在等包：若当前为 4/8 帧，全员升至 16 帧可减少停顿，但操作延迟会增加；也请检查全员网络与帧率。':m.frameRate>54&&displayFps<45?'模拟接近满速，画面显示受浏览器或主线程影响。':m.frameRate>54&&mode!=='solo'?`模拟接近满速；当前网络缓冲约 ${((m.inputDelay||Number($('input-delay').value)||8)/59.7275).toFixed(2)} 秒，按键会有对应延迟。`:'声音与画面独立播放，模拟不会等待绘制。';
  log(`presentation ${JSON.stringify({displayFps:Math.round(displayFps*10)/10,drawMs:Math.round(drawMs*100)/100,smoothing,blended,audio:audioNode?'worklet':'legacy',...audioStats,hidden:document.hidden})}`);
  painted=paintMs=blended=0;lastPaintReport=now;
