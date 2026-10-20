@@ -2045,5 +2045,144 @@
       "stops after last transition and on reset"
     ],
     "scope": "Lightweight alpha frame blending; no AI/optical flow, no simulation speed claim"
+  },
+  "reconnect-public-wss": {
+    "testedAt": "2026-10-20T13:36:00.162Z",
+    "relay": "https://aw-relay-production.up.railway.app",
+    "scope": "Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified",
+    "fault": "Drop one input before socket send, disconnect, resume with original role and replay missing data",
+    "cases": [
+      {
+        "players": 2,
+        "safeDisconnect": true,
+        "clients": [
+          {
+            "role": 0,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 451,
+            "verifiedFrame": 420,
+            "frameRate": 59.7,
+            "errors": []
+          },
+          {
+            "role": 1,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 440,
+            "verifiedFrame": 420,
+            "frameRate": 59.6,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          }
+        ]
+      },
+      {
+        "players": 3,
+        "safeDisconnect": true,
+        "clients": [
+          {
+            "role": 0,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 449,
+            "verifiedFrame": 360,
+            "frameRate": 59.8,
+            "errors": []
+          },
+          {
+            "role": 1,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 438,
+            "verifiedFrame": 420,
+            "frameRate": 59.6,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          },
+          {
+            "role": 2,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 439,
+            "verifiedFrame": 420,
+            "frameRate": 59.8,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          }
+        ]
+      },
+      {
+        "players": 4,
+        "safeDisconnect": true,
+        "clients": [
+          {
+            "role": 0,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 451,
+            "verifiedFrame": 360,
+            "frameRate": 59.7,
+            "errors": []
+          },
+          {
+            "role": 1,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 439,
+            "verifiedFrame": 420,
+            "frameRate": 59.7,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          },
+          {
+            "role": 2,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 439,
+            "verifiedFrame": 420,
+            "frameRate": 59.9,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          },
+          {
+            "role": 3,
+            "complete": true,
+            "reconnected": 1,
+            "afterReady": 438,
+            "verifiedFrame": 420,
+            "frameRate": 59.9,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "browser-v07": {
+    "testedAt": "2026-10-20T13:38:44Z",
+    "url": "https://advance-wars-gba-online.vercel.app/",
+    "scope": "Actual Chrome UI host + real WASM Node Worker peer, public WSS, self-authored CC0 diagnostic ROM, 32-frame buffer; commercial games unverified",
+    "observations": [
+      "Smoothing toggled on/off during solo without interrupting simulation",
+      "Peer disconnected before sending input at frame 150",
+      "UI displayed peer reconnect panel and manual retry button",
+      "UI then displayed 联机已恢复 · 继续当前对局, 2/2 players",
+      "Smoothing remained enabled during resumed online simulation",
+      "Stopped safely after verification"
+    ],
+    "sample": {
+      "simulationFps": 59.8,
+      "displayFpsIncludingBlend": 58.8,
+      "coreMsPerFrame": 2.1,
+      "inputWaitMsPerFrame": 0.0
+    },
+    "limits": "Display submits are not physical scanout. Frame blending does not increase emulation speed or remove network waits; ghosting possible. Diagnostic ROM intentionally has a black screen."
   }
 }
