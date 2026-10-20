@@ -13,6 +13,8 @@ static unsigned pixel=0;
 static double sampleRate=32768;
 static std::vector<uint8_t> rom;
 static std::vector<uint32_t> rgba;
+static std::vector<uint8_t> quickState;
+static bool groupUsed=false;
 static std::map<std::string,std::string> variables;
 EM_JS(void,notice,(const char* p,int error),{Module.frontend?.notice?.(UTF8ToString(p),!!error);});
 EM_JS(int,keys,(),{return Module.frontend?.keys||0;});
@@ -79,16 +81,27 @@ EMSCRIPTEN_KEEPALIVE void aw_stop(){bridge.stop();}
 EMSCRIPTEN_KEEPALIVE size_t aw_save_size(){return loaded?retro_get_memory_size(RETRO_MEMORY_SAVE_RAM):0;}
 EMSCRIPTEN_KEEPALIVE void* aw_save_data(){return loaded?retro_get_memory_data(RETRO_MEMORY_SAVE_RAM):nullptr;}
 EMSCRIPTEN_KEEPALIVE int aw_import_save(const uint8_t*p,size_t n){auto* d=aw_save_data();if(!d||bridge.active||n!=aw_save_size())return 0;std::memcpy(d,p,n);return 1;}
+EMSCRIPTEN_KEEPALIVE size_t aw_state_capture(){
+ if(!loaded||failed||bridge.active||groupUsed)return 0;
+ const size_t n=retro_serialize_size();if(!n||n>4*1024*1024)return 0;
+ quickState.resize(n);if(!retro_serialize(quickState.data(),n)){quickState.clear();return 0;}return n;
+}
+EMSCRIPTEN_KEEPALIVE const void* aw_state_data(){return quickState.empty()?nullptr:quickState.data();}
+EMSCRIPTEN_KEEPALIVE int aw_state_load(const uint8_t*p,size_t n){return loaded&&!failed&&!bridge.active&&!groupUsed&&p&&n>0&&n<=4*1024*1024&&retro_unserialize(p,n);}
 EMSCRIPTEN_KEEPALIVE int aw_ready(){return ready;}
 EMSCRIPTEN_KEEPALIVE double aw_state_sent(){return bridge.stateChecksSent;}
 EMSCRIPTEN_KEEPALIVE double aw_state_received(){return bridge.stateChecksReceived;}
 EMSCRIPTEN_KEEPALIVE int aw_terminal(){return failed||bridge.terminal;}
 EMSCRIPTEN_KEEPALIVE double aw_sample_rate(){return sampleRate;}
-EMSCRIPTEN_KEEPALIVE int aw_group_capture(unsigned role,unsigned count){return loaded&&!bridge.active&&awGroupCapture(role,count);}
+EMSCRIPTEN_KEEPALIVE int aw_group_capture(unsigned role,unsigned count){int ok=loaded&&!bridge.active&&awGroupCapture(role,count);if(ok)groupUsed=true;return ok;}
 EMSCRIPTEN_KEEPALIVE const uint8_t* aw_group_snapshot_ptr(){return awGroupSnapshotData();}
 EMSCRIPTEN_KEEPALIVE size_t aw_group_snapshot_size(){return awGroupSnapshotSize();}
 EMSCRIPTEN_KEEPALIVE int aw_group_receive_snapshot(unsigned role,const uint8_t*p,size_t n){return awGroupReceiveSnapshot(role,p,n);}
 EMSCRIPTEN_KEEPALIVE int aw_group_install(){return awGroupInstall();}
+EMSCRIPTEN_KEEPALIVE int aw_group_set_delay(unsigned delay){return awGroupSetDelay(delay);}
+EMSCRIPTEN_KEEPALIVE int aw_group_seed_next(){return awGroupSeedNext();}
+EMSCRIPTEN_KEEPALIVE int aw_group_stage_save(){return awGroupStageSave();}
+EMSCRIPTEN_KEEPALIVE double aw_group_verified_frame(){return awGroupVerifiedFrame();}
 EMSCRIPTEN_KEEPALIVE int aw_group_seed(){return awGroupSeed();}
 EMSCRIPTEN_KEEPALIVE int aw_group_author(unsigned keys){return awGroupAuthor(keys);}
 EMSCRIPTEN_KEEPALIVE const uint8_t* aw_group_input_ptr(){return awGroupInputData();}

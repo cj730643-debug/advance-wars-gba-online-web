@@ -48,10 +48,14 @@ jobs:
       - run: mkdir -p logs
       - run: node tests/calibration-timeout-build-smoke.mjs
       - run: node tests/core-smoke.mjs
+      - run: node tests/solo-resume-smoke.mjs
       - run: node tests/worker-smoke.mjs
       - run: node tests/core-group-smoke.mjs
       - run: node tests/worker-group-smoke.mjs
       - run: node tests/group-failure-smoke.mjs
+      - run: node tests/worker-group-smoke.mjs
+        env:
+          TEST_RX_DELAY_MS: '180'
       - run: node tests/group-performance.mjs
         env:
           PERF_LABEL: after
@@ -67,12 +71,12 @@ jobs:
           if count != 1:
               raise SystemExit('Could not update the unique WASM SHA-256 in TEST_REPORT.txt')
           text += (
-              '\n\n2026-10-20 联机性能修复：\n'
-              '- 每帧诊断 trace 改为可选编译项，线上关闭；每 60 帧全员状态共识仍保留。\n'
-              '- 后台收包改为到包立即唤醒，取消人为 250 ms 等待；界面新增 FPS、模拟和等包耗时。\n'
-              '- 同一 CI Runner 用真实 WASM 对修改前后各运行 360 帧，结果见 test-evidence.json 的 group-performance-before/after。\n'
-              '- 重建后核心、双人/多人 Worker 与错误状态注入测试通过后才发布核心产物。\n'
-              '- 不代表商业 ROM 完整对局或所有设备达到满帧。\n'
+              '\n\n2026-10-20 自动续玩与流畅联机：\n'
+              '- 单人即时存档使用真实 mGBA 序列化，每 2 秒保存到浏览器；选择的 ROM 本地保留。\n'
+              '- 单人新 Worker 恢复与 native 保存加载往返校验；旧电池存档命名空间保留。\n'
+              '- 新联机可选 8/16/32 帧输入缓冲，默认 32；检查点异步核对，最多向前运行一个 60 帧区间，错误即停止。只有全员确认的检查点电池存档才落盘。\n'
+              '- CI 使用每端接收额外延迟 180 ms 的真实 Worker/核心检查，不代表实际 IP 丢包测试或用户设备满帧保证。\n'
+              '- 联机刷新仍结束整个会话，原局重连未实现。\n'
           )
           report.write_text(text, encoding='utf-8')
           print('Rebuilt WASM SHA-256:', digest)
@@ -88,6 +92,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No generated artifact changes to publish.'
           else
-            git commit -m '[core-artifact] Remove per-frame forensic hashing; preserve checkpoint consensus'
+            git commit -m '[core-artifact] Add solo resume and buffered checkpoint-safe netplay'
             git push
           fi

@@ -17,7 +17,7 @@ assert(!visibilityHandler.includes("type:'pause'"), 'visibility changes must not
 assert(visibilityHandler.includes("document.hidden&&active&&mode!=='solo'"), 'background status handling should be multiplayer-only');
 assert(app.includes("$('pause').onclick=()=>{if(mode!=='solo'||!worker)return;paused=!paused;"), 'manual single-player pause control must remain available');
 assert(worker.includes('createIncomingQueue()'), 'worker should use a byte-accounted receive queue');
-assert(worker.includes("case'visibility':pageHidden=!!m.hidden;break;"), 'worker should receive visibility state');
+assert(worker.includes("case'visibility':pageHidden=!!m.hidden;"), 'worker should receive visibility state');
 assert(worker.includes('isBackground:()=>pageHidden'), 'group sync should know when its own page is hidden');
 for (const [name, source] of [['two-player', pair], ['group', group]]) {
   assert(source.includes('const BACKGROUND_LIVENESS_TIMEOUT_MS=300_000;'), `${name} heartbeat should tolerate background timer throttling`);

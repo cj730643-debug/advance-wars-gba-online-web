@@ -36,6 +36,7 @@ bool AWGroupInputSyncInit(
 enum GBALinkInputResult AWGroupInputSyncSeedLocal(
 	struct AWGroupInputSync* sync, uint16_t keys,
 	struct GBALinkV2Packet* batch);
+enum GBALinkInputResult AWGroupInputSyncSeedChunk(struct AWGroupInputSync* sync, unsigned offset, struct GBALinkV2Packet* batch);
 enum GBALinkInputResult AWGroupInputSyncAuthor(
 	struct AWGroupInputSync* sync, uint64_t currentFrame,
 	uint16_t keys, struct GBALinkV2Packet* batch);

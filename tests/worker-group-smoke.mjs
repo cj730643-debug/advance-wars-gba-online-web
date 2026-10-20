@@ -4,12 +4,12 @@ import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {createRelay} from '../relay/server.mjs';
 const relay=process.env.RELAY_URL?null:createRelay(),origin=process.env.RELAY_URL??await relay.listen(),workers=[],cases=[];
-const stallMs=Number(process.env.STALL_PEER_MS||0);
+const stallMs=Number(process.env.STALL_PEER_MS||0),receiveDelayMs=Number(process.env.TEST_RX_DELAY_MS||0);
 try{for(const players of [2,3,4]){
  const rom=await readFile(new URL(players===2?'./fixtures/gba-link-continuous.gba':`./fixtures/gba-link-group-${players}.gba`,import.meta.url));let host,stopSent=false;
  const group=[];
  function stopIfReady(){if(group.length===players&&group.every(c=>c.result.complete)&&!stopSent){stopSent=true;host.w.postMessage({type:'stop'});}}
- function launch(mode,code){let resolve,reject,roomResolve;const done=new Promise((a,b)=>{resolve=a;reject=b;}),room=new Promise(a=>roomResolve=a);done.catch(()=>{});const w=new Worker(new URL('./worker-node-adapter.mjs',import.meta.url),{workerData:{stallMs:mode==='host'?stallMs:0}});workers.push(w);const result={mode,role:null,states:[],errors:[],metrics:null,video:0,audio:0,saveBytes:0,complete:false,stalls:[]};const c={w,result,done,room};group.push(c);
+ function launch(mode,code){let resolve,reject,roomResolve;const done=new Promise((a,b)=>{resolve=a;reject=b;}),room=new Promise(a=>roomResolve=a);done.catch(()=>{});const w=new Worker(new URL('./worker-node-adapter.mjs',import.meta.url),{workerData:{stallMs:mode==='host'?stallMs:0,receiveDelayMs}});workers.push(w);const result={mode,role:null,states:[],errors:[],metrics:null,video:0,audio:0,saveBytes:0,complete:false,stalls:[]};const c={w,result,done,room};group.push(c);
  const timer=setTimeout(()=>reject(Error('group timeout '+JSON.stringify(result))),70000);
  w.on('error',reject);w.on('message',m=>{
   if(m.type==='adapter_ready'){const b=Uint8Array.from(rom).buffer;w.postMessage({type:'start',mode,code,players,relay:origin,game:'diagnostic',rom:b,saves:{}},[b]);}
@@ -27,4 +27,4 @@ try{for(const players of [2,3,4]){
  if(stallMs){assert.equal(results[0].stalls.length,2);assert(results[0].stalls.every(s=>s.milliseconds>=stallMs));}
  assert.deepEqual(results.map(r=>r.role),Array.from({length:players},(_,i)=>i));cases.push({players,results,safeDisconnect:true});for(const c of group)await c.w.terminate();
  }}finally{await Promise.all(workers.map(w=>w.terminate()));await relay?.close();}
-const report={testedAt:new Date().toISOString(),relay:origin,stallMs,scope:'Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified',cases};await writeFile(new URL(`../logs/${stallMs?'worker-background-':''}${process.env.RELAY_URL?'worker-group-public-wss':'worker-group-smoke'}.json`,import.meta.url),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+const report={testedAt:new Date().toISOString(),relay:origin,stallMs,receiveDelayMs,scope:'Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified',cases};await writeFile(new URL(`../logs/${receiveDelayMs?'delayed-':''}${stallMs?'worker-background-':''}${process.env.RELAY_URL?'worker-group-public-wss':'worker-group-smoke'}.json`,import.meta.url),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));

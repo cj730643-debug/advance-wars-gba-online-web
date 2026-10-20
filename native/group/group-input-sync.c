@@ -177,7 +177,7 @@ bool AWGroupInputSyncInit(
 	struct AWGroupInputSync* sync, uint64_t snapshotGeneration,
 	uint8_t localPlayer, uint16_t delay, uint64_t firstFrame, unsigned count) {
 	if (!sync || !snapshotGeneration || count < 2 || count > 4 || localPlayer >= count ||
-	    delay > GBA_LINK_V2_MAX_INPUT_DELAY ||
+	    delay > 32 ||
 	    firstFrame > UINT64_MAX - delay) {
 		return false;
 	}
@@ -293,6 +293,11 @@ enum GBALinkInputResult AWGroupInputSyncSeedLocal(
 	return GBA_LINK_INPUT_OK;
 }
 
+enum GBALinkInputResult AWGroupInputSyncSeedChunk(struct AWGroupInputSync* sync,unsigned offset,struct GBALinkV2Packet* packet){
+ if(!sync||!packet||!sync->initialized||!sync->authored||offset>=sync->delay)return GBA_LINK_INPUT_INVALID_ARGUMENT;
+ _beginBatch(sync,packet);_appendPresentRange(sync,sync->nextFrame+offset,sync->nextFrame+sync->delay-1,&packet->payload.inputBatch);
+ return packet->payload.inputBatch.count?GBA_LINK_INPUT_OK:GBA_LINK_INPUT_INVALID_ARGUMENT;
+}
 enum GBALinkInputResult AWGroupInputSyncAuthor(
 	struct AWGroupInputSync* sync, uint64_t currentFrame,
 	uint16_t keys, struct GBALinkV2Packet* packet) {

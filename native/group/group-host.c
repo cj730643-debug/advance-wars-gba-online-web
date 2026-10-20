@@ -19,6 +19,10 @@ static uint8_t* snapshot;
 static size_t snapshotSize;
 static uint8_t inputPacket[1024],digest[32],verifiedSave[GBA_SIZE_FLASH1M];
 static size_t inputSize;
+static unsigned inputDelay=8,seedOffset=0;
+static uint8_t stagedSave[GBA_SIZE_FLASH1M];
+static bool stagedSaveValid=false;
+static uint64_t stagedFrame=0,verifiedFrame=0;
 static const char* error;
 static uint64_t load64(const uint8_t*p){uint64_t n=0;for(unsigned i=0;i<8;++i)n=n<<8|p[i];return n;}
 static void store64(uint8_t*p,uint64_t n){for(int i=7;i>=0;--i){p[i]=n;n>>=8;}}
@@ -50,16 +54,18 @@ int awGroupCapture(unsigned role,unsigned players){
  memcpy(verifiedSave,retro_get_memory_data(RETRO_MEMORY_SAVE_RAM),sizeof(verifiedSave));
  return awGroupReceiveSnapshot(role,snapshot,snapshotSize);
 }
+int awGroupSetDelay(unsigned delay){if(active||delay<1||delay>32)return reject("GROUP_INVALID_DELAY");inputDelay=delay;return 1;}
 int awGroupInstall(void){
  if(!captured||active)return reject("GROUP_INVALID_STATE");for(unsigned i=0;i<count;++i)if(!snapshots[i])return reject("GROUP_MISSING_SNAPSHOT");
  AWReplicatedGroupInit(&group);
  if(AWReplicatedGroupInstall(&group,mLibretroAWGroupCore(),manifests,payloads,1,count)!=AW_REPLICATED_GROUP_OK)return reject("GROUP_INSTALL_FAILED");
- if(!AWGroupInputSyncInit(&inputSync,1,local,8,0,count))return reject("GROUP_INIT_FAILED");
+ if(!AWGroupInputSyncInit(&inputSync,1,local,inputDelay,0,count))return reject("GROUP_INIT_FAILED");
  for(unsigned i=0;i<count;++i)AWGroupReplicaPayloadDeinit(&payloads[i]);active=true;return 1;
 }
 static int encode(struct GBALinkV2Packet* p){const struct GBALinkV2InputBatch*b=&p->payload.inputBatch;inputSize=12+10*b->count;if(inputSize>sizeof(inputPacket))return reject("GROUP_INPUT_LIMIT");inputPacket[0]=1;inputPacket[1]=b->player;inputPacket[2]=b->count;inputPacket[3]=0;store64(inputPacket+4,b->snapshotGeneration);for(unsigned i=0;i<b->count;++i){uint8_t*d=inputPacket+12+10*i;store64(d,b->records[i].frame);d[8]=b->records[i].keys>>8;d[9]=b->records[i].keys;}return 1;}
 static uint16_t gbaKeys(unsigned keys){const unsigned map[10]={8,0,2,3,7,6,4,5,11,10};uint16_t out=0;for(unsigned i=0;i<10;++i)out|=((keys>>map[i])&1)<<i;return out;}
-int awGroupSeed(void){struct GBALinkV2Packet p;return active&&AWGroupInputSyncSeedLocal(&inputSync,0,&p)==GBA_LINK_INPUT_OK?encode(&p):reject("GROUP_SEED_FAILED");}
+int awGroupSeed(void){struct GBALinkV2Packet p;if(!active||AWGroupInputSyncSeedLocal(&inputSync,0,&p)!=GBA_LINK_INPUT_OK)return reject("GROUP_SEED_FAILED");seedOffset=p.payload.inputBatch.count;return encode(&p);}
+int awGroupSeedNext(void){if(seedOffset>=inputDelay)return 0;struct GBALinkV2Packet p;if(AWGroupInputSyncSeedChunk(&inputSync,seedOffset,&p)!=GBA_LINK_INPUT_OK)return -1;seedOffset+=p.payload.inputBatch.count;return encode(&p);}
 int awGroupAuthor(unsigned keys){struct GBALinkV2Packet p;enum GBALinkInputResult r=AWGroupInputSyncAuthor(&inputSync,inputSync.nextFrame,gbaKeys(keys),&p);return r==GBA_LINK_INPUT_OK||r==GBA_LINK_INPUT_DUPLICATE?encode(&p):reject("GROUP_INPUT_AUTHOR_FAILED");}
 const uint8_t* awGroupInputData(void){return inputPacket;}
 size_t awGroupInputSize(void){return inputSize;}
@@ -74,9 +80,11 @@ int awGroupRun(void){uint16_t keys[4];if(!active||AWGroupInputSyncConsume(&input
 const void* awGroupVideo(unsigned*w,unsigned*h){if(!active)return NULL;struct mCore*c=group.players[local].core;c->currentVideoSize(c,w,h);return group.players[local].videoBuffer;}
 size_t awGroupAudio(int16_t*out,size_t max){if(!active)return 0;struct mCore*c=group.players[local].core;size_t n=mAudioBufferAvailable(c->getAudioBuffer(c));if(n>max)n=max;return mAudioBufferRead(c->getAudioBuffer(c),out,n);}
 const uint8_t* awGroupDigest(void){if(!active)return NULL;struct SHA256Context sha;sha256Init(&sha);const char domain[]="AW group v1 state consensus";sha256Update(&sha,domain,sizeof(domain));uint8_t p[8];store64(p,group.frameNumber);sha256Update(&sha,p,8);p[0]=count;sha256Update(&sha,p,1);for(unsigned i=0;i<count;++i){uint8_t h[32];if(!AWReplicatedGroupStateDigest(&group,i,h)){error="GROUP_DIGEST_FAILED";return NULL;}sha256Update(&sha,h,32);}sha256Finalize(digest,&sha);return digest;}
-void awGroupCommit(void){if(active){
+int awGroupStageSave(void){if(!active||stagedSaveValid)return reject("GROUP_INVALID_SAVE_STAGE");void*save=NULL;struct mCore*c=group.players[local].core;size_t n=c->savedataClone(c,&save);if(!save||n>sizeof(stagedSave)){free(save);return reject("GROUP_SAVE_CAPACITY");}memcpy(stagedSave,verifiedSave,sizeof(stagedSave));memcpy(stagedSave,save,n);free(save);stagedFrame=group.frameNumber;stagedSaveValid=true;return 1;}
+double awGroupVerifiedFrame(void){return verifiedFrame;}
+void awGroupCommit(void){if(active&&stagedSaveValid){memcpy(verifiedSave,stagedSave,sizeof(verifiedSave));memcpy(retro_get_memory_data(RETRO_MEMORY_SAVE_RAM),verifiedSave,sizeof(verifiedSave));verifiedFrame=stagedFrame;stagedSaveValid=false;return;}if(active){
  void* save=NULL;struct mCore*c=group.players[local].core;size_t n=c->savedataClone(c,&save);
- if(save && n<=sizeof(verifiedSave)){memcpy(verifiedSave,save,n);memcpy(retro_get_memory_data(RETRO_MEMORY_SAVE_RAM),verifiedSave,sizeof(verifiedSave));}free(save);
+ if(save && n<=sizeof(verifiedSave)){memcpy(verifiedSave,save,n);memcpy(retro_get_memory_data(RETRO_MEMORY_SAVE_RAM),verifiedSave,sizeof(verifiedSave));verifiedFrame=group.frameNumber;}free(save);
 }}
 void awGroupStop(void){AWReplicatedGroupStop(&group);if(active){memcpy(retro_get_memory_data(RETRO_MEMORY_SAVE_RAM),verifiedSave,sizeof(verifiedSave));active=false;}for(unsigned i=0;i<4;++i)AWGroupReplicaPayloadDeinit(&payloads[i]);free(snapshot);snapshot=NULL;snapshotSize=0;}
 double awGroupFrame(void){return group.frameNumber;}

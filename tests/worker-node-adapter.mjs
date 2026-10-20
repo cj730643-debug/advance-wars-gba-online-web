@@ -1,6 +1,11 @@
 // Adapts browser Worker events and local asset fetching only. Core/network are real.
 import {parentPort,workerData} from 'node:worker_threads';
 import {readFile} from 'node:fs/promises';
+// Test-only ordered receive delay, including state and input packets.
+if(workerData?.receiveDelayMs){const RealWebSocket=globalThis.WebSocket;globalThis.WebSocket=class extends RealWebSocket{
+ set onmessage(callback){super.onmessage=e=>{if(typeof e.data==='string')callback(e);else setTimeout(()=>callback(e),workerData.receiveDelayMs);};}
+ get onmessage(){return super.onmessage;}
+};}
 // Test-only fault injection on real WebSocket bytes, after native state hashing.
 if(workerData?.corruptStateAt60){const RealWebSocket=globalThis.WebSocket;
  globalThis.WebSocket=class extends RealWebSocket{send(data){if(data instanceof Uint8Array && data.length===56 && data[6]===3 && new DataView(data.buffer,data.byteOffset).getBigUint64(16)===60n){data=data.slice();data[24]^=1;}return super.send(data);}};
