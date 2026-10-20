@@ -71,12 +71,10 @@ jobs:
           if count != 1:
               raise SystemExit('Could not update the unique WASM SHA-256 in TEST_REPORT.txt')
           text += (
-              '\n\n2026-10-20 自动续玩与流畅联机：\n'
-              '- 单人即时存档使用真实 mGBA 序列化，每 2 秒保存到浏览器；选择的 ROM 本地保留。\n'
-              '- 单人新 Worker 恢复与 native 保存加载往返校验；旧电池存档命名空间保留。\n'
-              '- 新联机可选 8/16/32 帧输入缓冲，默认 32；检查点异步核对，最多向前运行一个 60 帧区间，错误即停止。只有全员确认的检查点电池存档才落盘。\n'
-              '- CI 使用每端接收额外延迟 180 ms 的真实 Worker/核心检查，不代表实际 IP 丢包测试或用户设备满帧保证。\n'
-              '- 联机刷新仍结束整个会话，原局重连未实现。\n'
+              '\n\n2026-10-20 优化核心重编译验证：\n'
+              '- O3、LTO 与 SIMD128 构建；保留 Asyncify、核心时序、输入协议和状态核对。\n'
+              '- 运行单人保存恢复、2/3/4 人同步、错误注入和额外 180 ms 接收延迟检查。\n'
+              '- 诊断 ROM 核心性能前后对比写入 test-evidence.json，不等同用户设备或商业 ROM 稳定 60 FPS。\n'
           )
           report.write_text(text, encoding='utf-8')
           print('Rebuilt WASM SHA-256:', digest)
@@ -92,6 +90,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No generated artifact changes to publish.'
           else
-            git commit -m '[core-artifact] Add solo resume and buffered checkpoint-safe netplay'
+            git commit -m '[core-artifact] Publish verified O3 LTO SIMD core'
             git push
           fi

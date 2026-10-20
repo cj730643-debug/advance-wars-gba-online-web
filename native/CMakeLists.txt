@@ -16,9 +16,12 @@ add_executable(aw-core core-host.cpp group/group-host.c group/group-replica.c gr
 target_compile_definitions(aw-core PRIVATE __LIBRETRO__ COLOR_16_BIT COLOR_5_6_5 DISABLE_THREADING MGBA_STANDALONE ENABLE_VFS MINIMAL_CORE=2 _POSIX_C_SOURCE=200809L _GNU_SOURCE)
 target_include_directories(aw-core PRIVATE "${MGBA_SOURCE_DIR}/src/platform/libretro" "${MGBA_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/core/include" "${MGBA_SOURCE_DIR}/src")
 target_link_libraries(aw-core PRIVATE mgba_libretro)
-target_compile_options(aw-core PRIVATE -O2)
+# Optimize the interpreter/render loops across the static library boundary.
+# SIMD is supported by current desktop Chrome/Edge/Firefox/Safari targets.
+target_compile_options(mgba_libretro PRIVATE -O3 -flto -msimd128)
+target_compile_options(aw-core PRIVATE -O3 -flto -msimd128)
 set_target_properties(aw-core PROPERTIES SUFFIX .mjs)
-target_link_options(aw-core PRIVATE -O2 --no-entry
+target_link_options(aw-core PRIVATE -O3 -flto -msimd128 --no-entry
  -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createAwCore
  -sENVIRONMENT=web,worker,node -sALLOW_MEMORY_GROWTH=1
  -sINITIAL_MEMORY=134217728 -sMAXIMUM_MEMORY=536870912
