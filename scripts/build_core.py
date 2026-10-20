@@ -11,22 +11,20 @@ assert 'mLibretroAWGroupCore' in (src/'src/platform/libretro/libretro.c').read_t
 assert '_pairSleep' in (src/'src/gba/replicated-pair.c').read_text(encoding="utf-8")
 # The upstream session already supports per-operation deadlines; the web
 # adapter was leaving calibration/accept at the 3 s default. Apply the 10 s
-# WAN policy advertised by PROFILE, and fail closed if upstream layout changes.
+# WAN policy advertised by PROFILE and fail closed if the source layout changes.
 adapter=src/'src/platform/libretro/gba-wifi-link.c'
 text=adapter.read_text(encoding='utf-8')
 cal='adapter->sessionConfig.deadlines.milliseconds[GBA_LINK_V2_DEADLINE_CALIBRATION] = 10000;'
 accept='adapter->sessionConfig.deadlines.milliseconds[GBA_LINK_V2_DEADLINE_ACCEPT] = 10000;'
+needle='GBALinkV2DeadlinePolicyInit(&adapter->sessionConfig.deadlines);\n\tadapter->sessionConfig.callbacks = &_sessionCallbacks;'
+replacement='GBALinkV2DeadlinePolicyInit(&adapter->sessionConfig.deadlines);\n\t'+cal+'\n\t'+accept+'\n\tadapter->sessionConfig.callbacks = &_sessionCallbacks;'
 if cal in text or accept in text:
  if text.count(cal)!=1 or text.count(accept)!=1:
   raise SystemExit('Partially applied or ambiguous WAN deadline configuration')
+elif text.count(needle)==1:
+ text=text.replace(needle,replacement,1)
 else:
- pattern=r'GBALinkV2DeadlinePolicyInit\\(&adapter->sessionConfig\\.deadlines\\);\\s*adapter->sessionConfig\\.callbacks = &_sessionCallbacks;'
- replacement=('GBALinkV2DeadlinePolicyInit(&adapter->sessionConfig.deadlines);\\n'
-  '\\t'+cal+'\\n'+'\\t'+accept+'\\n'
-  '\\tadapter->sessionConfig.callbacks = &_sessionCallbacks;')
- text,count=re.subn(pattern,lambda _:replacement,text,count=1)
- if count!=1:
-  raise SystemExit('Could not locate unique GBA Wi-Fi Link deadline policy initialization')
+ raise SystemExit('Could not locate unique GBA Wi-Fi Link deadline policy initialization: '+repr(text[text.find('GBALinkV2DeadlinePolicyInit')-100:text.find('GBALinkV2DeadlinePolicyInit')+180]))
 adapter.write_text(text,encoding='utf-8')
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
