@@ -29,25 +29,28 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
     else{if(pending.length>=64)throw Error('GROUP_INPUT_LIMIT');pending.push(msg);}
    }else if(kind===3){
     if(b.length!==40)throw Error('GROUP_BAD_STATE_PACKET');
-    const n=new DataView(b.buffer,b.byteOffset,b.byteLength).getBigUint64(0);
+    const tagged=new DataView(b.buffer,b.byteOffset,b.byteLength).getBigUint64(0),ack=!!(tagged&(1n<<63n)),n=tagged&((1n<<63n)-1n);
     if(n>BigInt(Number.MAX_SAFE_INTEGER))throw Error('GROUP_BAD_STATE_PACKET');
     const frame=Number(n),now=c._aw_group_frame();
     if(frame%60||(frame<now&&frame!==pendingCheck?.frame)||frame>now+60)throw Error('GROUP_BAD_STATE_PACKET');
-    let s=states.get(frame);if(!s){s=Array(players).fill(null);states.set(frame,s);}
-    if(s[sender])throw Error('GROUP_DUPLICATE_STATE');s[sender]=b.slice(8);
+    let s=states.get(frame);if(!s){s={hashes:Array(players).fill(null),acks:Array(players).fill(null)};states.set(frame,s);}
+    const slots=ack?s.acks:s.hashes;if(slots[sender])throw Error('GROUP_DUPLICATE_STATE');slots[sender]=b.slice(8);
    }else throw Error('BAD_PACKET');
   }
  }
  async function until(test,timeout){const start=performance.now();for(;;){drain();if(test())return;if(performance.now()-start>=timeout)throw Error(installed?'GROUP_SYNC_TIMEOUT':'GROUP_HANDSHAKE_TIMEOUT');await front.incoming.wait(1000);}}
  function beginCheckpoint(){
   const frame=c._aw_group_frame(),digest=hash(),packet=new Uint8Array(40);new DataView(packet.buffer).setBigUint64(0,BigInt(frame));packet.set(digest,8);
-  let hashes=states.get(frame);if(!hashes){hashes=Array(players).fill(null);states.set(frame,hashes);}hashes[role]=digest;
-  if(pipeline)check('stage_save');pendingCheck={frame,digest,hashes};send(3,packet);
+  let state=states.get(frame);if(!state){state={hashes:Array(players).fill(null),acks:Array(players).fill(null)};states.set(frame,state);}state.hashes[role]=digest;
+  if(pipeline)check('stage_save');pendingCheck={frame,digest,...state,ackSent:false};send(3,packet);
  }
  function finishCheckpoint(){
-  if(!pendingCheck)return true;const {frame,digest,hashes}=pendingCheck;
+  if(!pendingCheck)return true;const {frame,digest,hashes,acks}=pendingCheck;
   for(const other of hashes)if(other&&other.some((v,i)=>v!==digest[i]))throw Error('GROUP_STATE_MISMATCH');
   if(!hashes.every(Boolean))return false;
+  if(!pendingCheck.ackSent){const ack=new Uint8Array(40);new DataView(ack.buffer).setBigUint64(0,BigInt(frame)|(1n<<63n));ack.set(digest,8);acks[role]=digest;pendingCheck.ackSent=true;send(3,ack);}
+  for(const other of acks)if(other&&other.some((v,i)=>v!==digest[i]))throw Error('GROUP_STATE_MISMATCH');
+  if(!acks.every(Boolean))return false;
   c._aw_group_commit();onVerified();states.delete(frame);pendingCheck=null;++checks;return true;
  }
  async function consensus(){beginCheckpoint();await until(finishCheckpoint,MAX_SYNC_WAIT_MS);}
@@ -63,8 +66,8 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
   while(!stopped()&&!front.terminal){
    check('author',front.keys);send(2,input());let t=performance.now();await until(()=>!!c._aw_group_frame_ready(),MAX_SYNC_WAIT_MS);finishCheckpoint();inputWaitMs+=performance.now()-t;t=performance.now();check('run');runMs+=performance.now()-t;
    if(c._aw_group_frame()%60===0){t=performance.now();if(pendingCheck)await until(finishCheckpoint,MAX_SYNC_WAIT_MS);beginCheckpoint();if(pipeline)finishCheckpoint();else await until(finishCheckpoint,MAX_SYNC_WAIT_MS);checkpointMs+=performance.now()-t;}
-   const now=performance.now();if(now-lastMetrics>=1000){const n=c._aw_group_frame()-windowFrame;lastPerformance={frameRate:Math.round(n*10000/(now-lastMetrics))/10,coreMsPerFrame:Math.round(runMs*100/n)/100,inputWaitMsPerFrame:Math.round(inputWaitMs*100/n)/100,checkpointMs:Math.round(checkpointMs),background:isBackground()};metrics({ready:true,afterReady:c._aw_group_frame(),stateSent:checks,stateReceived:checks*(players-1),players,inputDelay,verifiedFrame:c._aw_group_verified_frame?.()??0,...lastPerformance});lastMetrics=now;windowFrame=c._aw_group_frame();runMs=inputWaitMs=checkpointMs=0;}
+   const now=performance.now();if(now-lastMetrics>=1000){const n=c._aw_group_frame()-windowFrame;lastPerformance={frameRate:Math.round(n*10000/(now-lastMetrics))/10,coreMsPerFrame:Math.round(runMs*100/n)/100,inputWaitMsPerFrame:Math.round(inputWaitMs*100/n)/100,checkpointMs:Math.round(checkpointMs),background:isBackground()};metrics({ready:true,afterReady:c._aw_group_frame(),stateSent:checks*2,stateReceived:checks*(players-1)*2,stateCheckpoints:checks,players,inputDelay,verifiedFrame:c._aw_group_verified_frame?.()??0,...lastPerformance});lastMetrics=now;windowFrame=c._aw_group_frame();runMs=inputWaitMs=checkpointMs=0;}
    next+=1000/59.7275;if(next<now-100)next=now;await sleep(Math.max(0,next-now));drain();finishCheckpoint();
   }
- }finally{c._aw_group_stop();metrics({ready:installed,afterReady:c._aw_group_frame(),stateSent:checks,stateReceived:checks*(players-1),players,inputDelay,verifiedFrame:c._aw_group_verified_frame?.()??0,...lastPerformance});}
+ }finally{c._aw_group_stop();metrics({ready:installed,afterReady:c._aw_group_frame(),stateSent:checks*2,stateReceived:checks*(players-1)*2,stateCheckpoints:checks,players,inputDelay,verifiedFrame:c._aw_group_verified_frame?.()??0,...lastPerformance});}
 }

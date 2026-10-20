@@ -19,7 +19,7 @@ try{for(const players of [2,3,4]){
   if(m.type==='error'){result.errors.push(m.reason);console.log(players,'error',result.role,m.reason);}
   if(m.type==='video')++result.video;if(m.type==='audio')result.audio+=m.buffer.byteLength/4;
   if(m.type==='save'){result.saveBytes=m.buffer.byteLength;result.saveRole=m.role;}
-  if(m.type==='metrics'){result.metrics=m;if(m.ready&&m.afterReady>=180&&m.stateSent>=4){result.complete=true;stopIfReady();}}
+  if(m.type==='metrics'){result.metrics=m;if(m.ready&&m.afterReady>=180&&m.stateCheckpoints>=4){result.complete=true;stopIfReady();}}
   if(m.type==='stopped'){clearTimeout(timer);console.log(players,'stopped',result.role,JSON.stringify(result.metrics));resolve(result);}
  });return c;}
  host=launch('host');const code=await host.room;for(let i=1;i<players;++i){const peer=launch('join',code);await peer.room;}
