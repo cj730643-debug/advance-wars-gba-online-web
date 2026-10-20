@@ -2,7 +2,8 @@
 // Separate group protocol; the established two-player netpacket path is retained.
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const MAX_SNAPSHOT=2*1024*1024,CHUNK=16384;
-export async function runGroupSession({core:c,transport,front,players,role,emit,metrics,stopped}){
+const MAX_SYNC_WAIT_MS=300_000;
+export async function runGroupSession({core:c,transport,front,players,role,emit,metrics,stopped,isBackground=()=>false}){
  let installed=false,checks=0,lastMetrics=performance.now();
  const snapshots=Array(players).fill(null),pending=[],states=new Map();
  const check=(name,...args)=>{if(c[`_aw_group_${name}`](...args)!==1)throw Error(c.UTF8ToString(c._aw_group_error()));};
@@ -36,23 +37,23 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
    }else throw Error('BAD_PACKET');
   }
  }
- async function until(test,timeout){const start=performance.now();for(;;){drain();if(test())return;if(performance.now()-start>=timeout)throw Error(installed?'GROUP_SYNC_TIMEOUT':'GROUP_HANDSHAKE_TIMEOUT');await sleep(2);}}
+ async function until(test,timeout){const start=performance.now();for(;;){drain();if(test())return;if(performance.now()-start>=timeout)throw Error(installed?'GROUP_SYNC_TIMEOUT':'GROUP_HANDSHAKE_TIMEOUT');await sleep(isBackground()?250:2);}}
  async function consensus(){
   const frame=c._aw_group_frame(),digest=hash(),packet=new Uint8Array(40);new DataView(packet.buffer).setBigUint64(0,BigInt(frame));packet.set(digest,8);
   let hashes=states.get(frame);if(!hashes){hashes=Array(players).fill(null);states.set(frame,hashes);}hashes[role]=digest;send(3,packet);
-  await until(()=>{for(const other of hashes)if(other&&other.some((v,i)=>v!==digest[i]))throw Error('GROUP_STATE_MISMATCH');return hashes.every(Boolean);},10000);
+  await until(()=>{for(const other of hashes)if(other&&other.some((v,i)=>v!==digest[i]))throw Error('GROUP_STATE_MISMATCH');return hashes.every(Boolean);},MAX_SYNC_WAIT_MS);
   c._aw_group_commit();states.delete(frame);++checks;
  }
  try{
   check('capture',role,players);snapshots[role]={done:true};
   const bytes=c.HEAPU8.slice(c._aw_group_snapshot_ptr(),c._aw_group_snapshot_ptr()+c._aw_group_snapshot_size());
   for(let offset=0;offset<bytes.length;offset+=CHUNK){const data=bytes.subarray(offset,offset+CHUNK),packet=new Uint8Array(8+data.length),v=new DataView(packet.buffer);v.setUint32(0,bytes.length);v.setUint32(4,offset);packet.set(data,8);send(1,packet);if(offset%(CHUNK*8)===0)await sleep(0);}
-  await until(()=>snapshots.every(s=>s?.done),30000);check('install');installed=true;
+  await until(()=>snapshots.every(s=>s?.done),MAX_SYNC_WAIT_MS);check('install');installed=true;
   for(const msg of pending)apply(msg.payload,'feed_input',msg.role);pending.length=0;
   check('seed');send(2,input());await consensus();emit('state',{state:'playing_online'});
   let next=performance.now();
   while(!stopped()&&!front.terminal){
-   check('author',front.keys);send(2,input());await until(()=>!!c._aw_group_frame_ready(),10000);check('run');
+   check('author',front.keys);send(2,input());await until(()=>!!c._aw_group_frame_ready(),MAX_SYNC_WAIT_MS);check('run');
    if(c._aw_group_frame()%60===0)await consensus();
    const now=performance.now();if(now-lastMetrics>=1000){metrics({ready:true,afterReady:c._aw_group_frame(),stateSent:checks,stateReceived:checks*(players-1),players});lastMetrics=now;}
    next+=1000/59.7275;if(next<now-100)next=now;await sleep(Math.max(0,next-now));drain();

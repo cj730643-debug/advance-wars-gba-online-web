@@ -2,5 +2,6 @@
   "framework": null,
   "buildCommand": "node scripts/vercel-build.mjs",
   "installCommand": "",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "headers": [{"source":"/(.*)","headers":[{"key":"Cache-Control","value":"no-cache, max-age=0, must-revalidate"}]}]
 }

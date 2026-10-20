@@ -35,3 +35,10 @@ python scripts/validate.py
 
 ## 多人核心
 见 [docs/GROUP_PROTOCOL.md](docs/GROUP_PROTOCOL.md) 和 [docs/FOUR_PLAYER_REPORT.md](docs/FOUR_PLAYER_REPORT.md)。原双人协议保留；3–4 人使用独立 group 协议、N 机复制执行和 N 路输入环形缓冲。未修改原版游戏 ROM。每个客户端运行全体逻辑机器，只显示和保存自己的逻辑玩家；对电脑性能要求随人数增加。
+
+
+## Web α 0.5：统一 2–4 人同步
+
+网页端所有联机人数统一使用 aw-relay-group-1 的快照交换、8 帧输入缓冲和每 60 帧状态共识。双人网页不再走旧版 protocol-v2 时长校准，避免后台计时延迟触发 calibration duration invalid。原双人核心保留供底层回归，不作为网页联机入口。所有玩家需要关闭旧页面、刷新相同网址并重建房间；旧房间不可沿用。诊断日志包含构建 ID、实际 WASM 哈希、配置哈希和人数。
+
+回归命令：`node tests/worker-group-smoke.mjs` 覆盖 2、3、4 人；设置 `STALL_PEER_MS=2200` 会在房主握手和进入游戏时各冻结真实 Worker 2.2 秒，再验证恢复运行与状态共识。该注入不等同于 Windows 浏览器休眠实测。商业 ROM 完整对局仍未验证。
