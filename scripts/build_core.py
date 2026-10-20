@@ -10,21 +10,22 @@ if (src/'.git').exists():
 assert 'mLibretroAWGroupCore' in (src/'src/platform/libretro/libretro.c').read_text(encoding="utf-8"), 'Extract the complete corresponding vendor source from dist/source.zip first'
 assert '_pairSleep' in (src/'src/gba/replicated-pair.c').read_text(encoding="utf-8")
 # The upstream session already supports per-operation deadlines; the web
-# adapter was leaving calibration/accept at the 3 s default. Apply the 10 s
-# WAN policy advertised by PROFILE and fail closed if the source layout changes.
+# adapter was leaving calibration/accept at the 3 s default. Enforce the 10 s
+# WAN window advertised by PROFILE after any upstream optional policy handling.
 adapter=src/'src/platform/libretro/gba-wifi-link.c'
 text=adapter.read_text(encoding='utf-8')
+marker='/* Advance Wars Online web build: enforce the 10 s WAN calibration window advertised by PROFILE. */'
 cal='adapter->sessionConfig.deadlines.milliseconds[GBA_LINK_V2_DEADLINE_CALIBRATION] = 10000;'
 accept='adapter->sessionConfig.deadlines.milliseconds[GBA_LINK_V2_DEADLINE_ACCEPT] = 10000;'
-needle='GBALinkV2DeadlinePolicyInit(&adapter->sessionConfig.deadlines);\n\tadapter->sessionConfig.callbacks = &_sessionCallbacks;'
-replacement='GBALinkV2DeadlinePolicyInit(&adapter->sessionConfig.deadlines);\n\t'+cal+'\n\t'+accept+'\n\tadapter->sessionConfig.callbacks = &_sessionCallbacks;'
-if cal in text or accept in text:
- if text.count(cal)!=1 or text.count(accept)!=1:
+if marker in text:
+ if text.count(marker)!=1 or text.count(cal)!=1 or text.count(accept)!=1:
   raise SystemExit('Partially applied or ambiguous WAN deadline configuration')
-elif text.count(needle)==1:
- text=text.replace(needle,replacement,1)
 else:
- raise SystemExit('Could not locate unique GBA Wi-Fi Link deadline policy initialization: '+repr(text[text.find('GBALinkV2DeadlinePolicyInit')-100:text.find('GBALinkV2DeadlinePolicyInit')+180]))
+ needle='adapter->sessionConfig.callbacks = &_sessionCallbacks;'
+ if text.count(needle)!=1:
+  raise SystemExit('Could not locate unique GBA Wi-Fi Link callback initialization')
+ insertion=marker+'\\n\\t'+cal+'\\n\\t'+accept+'\\n\\t'+needle
+ text=text.replace(needle,insertion,1)
 adapter.write_text(text,encoding='utf-8')
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
