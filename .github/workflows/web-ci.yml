@@ -28,6 +28,7 @@ jobs:
       - run: node tests/background-mode-smoke.mjs
       - run: node tests/packet-wait.test.mjs
       - run: node --test tests/frame-blender.test.mjs
+      - run: node --test tests/network-calibration.test.mjs
       - run: node tests/mouse-controls-smoke.mjs
       - run: node tests/solo-core-diagnostic-smoke.mjs
       - run: node --check src/emulator-worker.mjs

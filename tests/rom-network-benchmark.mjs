@@ -37,8 +37,8 @@ try{for(const inputDelay of (process.env.DELAYS||'32,8,4').split(',').map(Number
  }
  const host=launch('host');launch('join',await host.room);
  const results=await Promise.all(clients.map(c=>c.done));
- for(const r of results){assert(r.complete,JSON.stringify(r));assert(r.distinctVideoFrames>10,'ROM must render changing graphics');assert.deepEqual(r.errors,r.role===0?[]:['PEER_DISCONNECTED']);assert(r.samples.every(m=>m.inputDelay===inputDelay));}
- cases.push({inputDelay,bufferMs:inputDelay*1000/59.7275,results});
+ for(const r of results){assert(r.complete,JSON.stringify(r));assert(r.distinctVideoFrames>10,'ROM must render changing graphics');assert.deepEqual(r.errors,r.role===0?[]:['PEER_DISCONNECTED']);assert(r.samples.every(m=>inputDelay===0?m.inputDelay>=8&&m.inputDelay<=32:m.inputDelay===inputDelay));}
+ cases.push({inputDelay,bufferMs:results[0].samples[0].inputDelay*1000/59.7275,results});
  for(const c of clients)await c.w.terminate();
  }}finally{await Promise.all(workers.map(w=>w.terminate()));await relay?.close();clearInterval(keepAlive);}
 const report={testedAt:new Date().toISOString(),scope:'User-supplied ROM boot/menu with scripted keys; 2 real WASM Workers via WS/WSS; internal Multi-Pak battle not verified; not physical input-to-photon latency',romSHA256:createHash('sha256').update(rom).digest('hex'),romBytes:rom.length,relay:origin,cases};

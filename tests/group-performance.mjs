@@ -2,8 +2,8 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import createCore from '../dist/aw-core.mjs';
-const wasm=await readFile(new URL('../dist/aw-core.wasm',import.meta.url)),cases=[];
+const {default:createCore}=await import(process.env.CORE_MODULE||'../dist/aw-core.mjs');
+const wasm=await readFile(process.env.WASM_PATH||new URL('../dist/aw-core.wasm',import.meta.url)),cases=[];
 for(const players of (process.env.PLAYERS||'2,4').split(',').map(Number)){
  const rom=await readFile(process.env.ROM_PATH||new URL(players===2?'./fixtures/gba-link-continuous.gba':'./fixtures/gba-link-group-4.gba',import.meta.url)),cores=[];
  for(let role=0;role<players;role++){

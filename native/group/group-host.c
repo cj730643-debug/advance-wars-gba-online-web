@@ -1,6 +1,7 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
 // Four independent logical GBAs, existing serial coordinator and copied-state/ring code.
 #include "group-host.h"
+#include <limits.h>
 #include "replicated-group.h"
 #include "group-input-sync.h"
 #include <mgba/core/core.h>
@@ -60,6 +61,10 @@ int awGroupInstall(void){
  AWReplicatedGroupInit(&group);
  if(AWReplicatedGroupInstall(&group,mLibretroAWGroupCore(),manifests,payloads,1,count)!=AW_REPLICATED_GROUP_OK)return reject("GROUP_INSTALL_FAILED");
  if(!AWGroupInputSyncInit(&inputSync,1,local,inputDelay,0,count))return reject("GROUP_INIT_FAILED");
+ // Draw only the local LCD. Shadow GBAs retain CPU, timers, video events,
+ // VRAM and serial behavior, but their software-rendered pixels are unused.
+ // mGBA deliberately excludes frameskip counters from serialized game state.
+ for(unsigned i=0;i<count;++i)if(i!=local){struct GBA*gba=group.players[i].core->board;gba->video.frameskip=INT_MAX;gba->video.frameskipCounter=INT_MAX;}
  for(unsigned i=0;i<count;++i)AWGroupReplicaPayloadDeinit(&payloads[i]);active=true;return 1;
 }
 static int encode(struct GBALinkV2Packet* p){const struct GBALinkV2InputBatch*b=&p->payload.inputBatch;inputSize=12+10*b->count;if(inputSize>sizeof(inputPacket))return reject("GROUP_INPUT_LIMIT");inputPacket[0]=1;inputPacket[1]=b->player;inputPacket[2]=b->count;inputPacket[3]=0;store64(inputPacket+4,b->snapshotGeneration);for(unsigned i=0;i<b->count;++i){uint8_t*d=inputPacket+12+10*i;store64(d,b->records[i].frame);d[8]=b->records[i].keys>>8;d[9]=b->records[i].keys;}return 1;}

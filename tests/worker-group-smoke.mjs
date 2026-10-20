@@ -26,7 +26,7 @@ try{for(const players of [2,3,4]){
   if(m.type==='stopped'){clearTimeout(timer);if(result.role===null)roomReject(Error(m.reason||'Stopped before room admission'));console.log(players,'stopped',result.role,JSON.stringify(result.metrics));resolve(result);}
  });return c;}
  host=launch('host');const code=await host.room;for(let i=1;i<players;++i){const peer=launch('join',code);await peer.room;}
- const results=await Promise.all(group.map(c=>c.done));for(const r of results){assert(r.complete,JSON.stringify(r));assert(r.states.includes('playing_online'));assert.equal(r.metrics.inputDelay,inputDelay??8);assert(r.video>=180&&r.audio>0);assert.equal(r.saveBytes,131072);assert.equal(r.saveRole,`p${r.role}`);assert.deepEqual(r.errors,r.role===0?[]:['PEER_DISCONNECTED']);}
+ const results=await Promise.all(group.map(c=>c.done));for(const r of results){assert(r.complete,JSON.stringify(r));assert(r.states.includes('playing_online'));if(inputDelay!==undefined&&inputDelay!==0)assert.equal(r.metrics.inputDelay,inputDelay);else assert(r.metrics.inputDelay>=8&&r.metrics.inputDelay<=32);assert(r.video>=180&&r.audio>0);assert.equal(r.saveBytes,131072);assert.equal(r.saveRole,`p${r.role}`);assert.deepEqual(r.errors,r.role===0?[]:['PEER_DISCONNECTED']);}
  if(reconnectTest){assert.equal(results[0].stalls.filter(x=>x.type==='test_drop').length,1);assert(results.every(x=>x.states.includes('reconnected')));assert(results[0].states.includes('reconnecting'));}
  if(stallMs){assert.equal(results[0].stalls.length,2);assert(results[0].stalls.every(s=>s.milliseconds>=stallMs));}
  assert.deepEqual(results.map(r=>r.role),Array.from({length:players},(_,i)=>i));cases.push({players,results,safeDisconnect:true});for(const c of group)await c.w.terminate();

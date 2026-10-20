@@ -65,10 +65,10 @@ async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
  if(stopping)return;
  emit('build',{version:BUILD_ID,coreSHA256:coreHash,configSHA256:configHash,players:mode==='solo'?1:(msg.players??2),transport:mode==='solo'?'solo':GROUP_PROTOCOL});
  if(mode!=='solo'){
-  const inputDelay=core._aw_group_set_delay?(msg.inputDelay??8):8;if(![4,8,16,32].includes(inputDelay))throw Error('GROUP_INVALID_DELAY');
+  const inputDelay=core._aw_group_set_delay?(msg.inputDelay??0):8;if(![0,4,8,16,32].includes(inputDelay))throw Error('GROUP_INVALID_DELAY');
   msg.players??=2;
   if(![2,3,4].includes(msg.players))throw Error('GROUP_INVALID_ROLE');
-  transport=await createGroupTransport({origin:msg.relay,host:mode==='host',code:msg.code,manifest:{game:msg.game,players:msg.players,protocol:GROUP_PROTOCOL,coreProtocol:'mgba-gba-link-group-1',rom:romHash,core:coreHash,config:await sha(new TextEncoder().encode(PROFILE+';group-v4-resume;delay='+inputDelay+';players='+msg.players))},front,onRoom:async info=>{role=`p${info.role}`;importBattery(msg.saves);emit('room',{...info,players:msg.players});},onRoster:info=>emit('roster',info),onState:state=>emit('state',{state}),onFailure:fail,onRtt:ms=>emit('rtt',{ms})});
+  transport=await createGroupTransport({origin:msg.relay,host:mode==='host',code:msg.code,manifest:{game:msg.game,players:msg.players,protocol:GROUP_PROTOCOL,coreProtocol:'mgba-gba-link-group-1',rom:romHash,core:coreHash,config:await sha(new TextEncoder().encode(PROFILE+';group-v5-calibrated;delay='+inputDelay+';players='+msg.players))},front,onRoom:async info=>{role=`p${info.role}`;importBattery(msg.saves);emit('room',{...info,players:msg.players});},onRoster:info=>emit('roster',info),onState:state=>emit('state',{state}),onFailure:fail,onRtt:ms=>emit('rtt',{ms})});
   await transport.ready;if(stopping)return;emit('state',{state:'synchronizing'});
   let lastOnlineSave=-5000;
   await runGroupSession({core,transport,front,players:msg.players,role:transport.role,emit,metrics,stopped:()=>stopping,isBackground:()=>pageHidden,inputDelay,onVerified:()=>{const now=performance.now();if(now-lastOnlineSave>=5000){battery();lastOnlineSave=now;}}});return;

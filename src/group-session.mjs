@@ -1,10 +1,12 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
 // One deterministic 2–4-player path, with packet-driven receive wakeups.
+import {calibrateNetwork} from './network-calibration.mjs';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const MAX_SNAPSHOT=2*1024*1024,CHUNK=16384;
 const MAX_SYNC_WAIT_MS=300_000;
 export async function runGroupSession({core:c,transport,front,players,role,emit,metrics,stopped,isBackground=()=>false,onVerified=()=>{},inputDelay=8}){
  let installed=false,checks=0,lastMetrics=performance.now(),windowFrame=0,runMs=0,inputWaitMs=0,checkpointMs=0,lastPerformance={},pendingCheck=null;
+ let calibration;
  const pipeline=typeof c._aw_group_stage_save==='function';
  const snapshots=Array(players).fill(null),pending=[],states=new Map();
  const check=(name,...args)=>{if(c[`_aw_group_${name}`](...args)!==1)throw Error(c.UTF8ToString(c._aw_group_error()));};
@@ -15,6 +17,7 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
  function drain(){
   if(front.terminal||stopped())throw Error('SESSION_STOPPED');
   for(const msg of front.incoming.splice(0)){
+   if(calibration?.consume(msg))continue;
    const {role:sender,kind,payload:b}=msg;
    if(kind===1){
     if(installed||b.length<=8)throw Error('GROUP_INVALID_SNAPSHOT');
@@ -56,6 +59,7 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
  async function consensus(){beginCheckpoint();await until(finishCheckpoint,MAX_SYNC_WAIT_MS);}
 
  try{
+  if(inputDelay===0){emit('state',{state:'calibrating'});calibration=await calibrateNetwork({transport,front,players,role,stopped});inputDelay=calibration.frames;emit('buffer',{frames:inputDelay,peakRttMs:calibration.peakRttMs});}
   check('capture',role,players);snapshots[role]={done:true};
   const bytes=c.HEAPU8.slice(c._aw_group_snapshot_ptr(),c._aw_group_snapshot_ptr()+c._aw_group_snapshot_size());
   for(let offset=0;offset<bytes.length;offset+=CHUNK){const data=bytes.subarray(offset,offset+CHUNK),packet=new Uint8Array(8+data.length),v=new DataView(packet.buffer);v.setUint32(0,bytes.length);v.setUint32(4,offset);packet.set(data,8);send(1,packet);if(offset%(CHUNK*8)===0)await sleep(0);}

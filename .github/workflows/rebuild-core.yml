@@ -71,8 +71,8 @@ jobs:
           if count != 1:
               raise SystemExit('Could not update the unique WASM SHA-256 in TEST_REPORT.txt')
           text += (
-              '\n\n2026-10-20 优化核心重编译验证：\n'
-              '- O3、LTO 与 SIMD128 构建；保留 Asyncify、核心时序、输入协议和状态核对。\n'
+              '\n\n2026-10-20 核心重编译验证：\n'
+              '- 只绘制本地 LCD；影子 GBA 保留 CPU、视频事件、显存和串口模拟。保留全员状态核对。\n'
               '- 运行单人保存恢复、2/3/4 人同步、错误注入和额外 180 ms 接收延迟检查。\n'
               '- 诊断 ROM 核心性能前后对比写入 test-evidence.json，不等同用户设备或商业 ROM 稳定 60 FPS。\n'
           )
@@ -90,6 +90,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No generated artifact changes to publish.'
           else
-            git commit -m '[core-artifact] Publish verified O3 LTO SIMD core'
+            git commit -m '[core-artifact] Publish verified emulator core'
             git push
           fi
