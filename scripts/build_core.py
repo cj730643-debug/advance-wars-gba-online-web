@@ -9,23 +9,25 @@ if (src/'.git').exists():
  assert subprocess.check_output(['git','-C',str(src),'rev-parse','HEAD'],text=True).strip()=='9e919b0cfbb93af7d1171570dfc6745d00eeebab'
 assert 'mLibretroAWGroupCore' in (src/'src/platform/libretro/libretro.c').read_text(encoding="utf-8"), 'Extract the complete corresponding vendor source from dist/source.zip first'
 assert '_pairSleep' in (src/'src/gba/replicated-pair.c').read_text(encoding="utf-8")
-# The browser profile advertises a WAN-safe 10 s calibration window. The pinned
-# upstream helper currently hard-codes 3 s for calibration/accept deadlines.
-# Match the constant inside this function rather than depending on source spacing.
-session=src/'src/gba/sio/netplay/session-v2.c'
-text=session.read_text(encoding='utf-8')
-start=text.find('static bool _absoluteDeadline(')
-end=text.find('\n}',start)
-if start<0 or end<0:
- raise SystemExit('Could not locate protocol-v2 absolute deadline helper')
-body=text[start:end]
-match=re.search(r'UINT64_C\(\s*(\d+)\s*\)',body)
-if not match or match.group(1) not in {'3000000','10000000'}:
- raise SystemExit('Unexpected protocol-v2 absolute deadline constant: '+repr(body[:500]))
-if match.group(1)=='3000000':
- body=body[:match.start(1)]+'10000000'+body[match.end(1):]
- text=text[:start]+body+text[end:]
-session.write_text(text,encoding='utf-8')
+# The upstream session already supports per-operation deadlines; the web
+# adapter was leaving calibration/accept at the 3 s default. Apply the 10 s
+# WAN policy advertised by PROFILE, and fail closed if upstream layout changes.
+adapter=src/'src/platform/libretro/gba-wifi-link.c'
+text=adapter.read_text(encoding='utf-8')
+cal='adapter->sessionConfig.deadlines.milliseconds[GBA_LINK_V2_DEADLINE_CALIBRATION] = 10000;'
+accept='adapter->sessionConfig.deadlines.milliseconds[GBA_LINK_V2_DEADLINE_ACCEPT] = 10000;'
+if cal in text or accept in text:
+ if text.count(cal)!=1 or text.count(accept)!=1:
+  raise SystemExit('Partially applied or ambiguous WAN deadline configuration')
+else:
+ pattern=r'GBALinkV2DeadlinePolicyInit\\(&adapter->sessionConfig\\.deadlines\\);\\s*adapter->sessionConfig\\.callbacks = &_sessionCallbacks;'
+ replacement=('GBALinkV2DeadlinePolicyInit(&adapter->sessionConfig.deadlines);\\n'
+  '\\t'+cal+'\\n'+'\\t'+accept+'\\n'
+  '\\tadapter->sessionConfig.callbacks = &_sessionCallbacks;')
+ text,count=re.subn(pattern,lambda _:replacement,text,count=1)
+ if count!=1:
+  raise SystemExit('Could not locate unique GBA Wi-Fi Link deadline policy initialization')
+adapter.write_text(text,encoding='utf-8')
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
 cmake=shutil.which('cmake') or str(Path.home()/'.local/bin/cmake');ninja=shutil.which('ninja') or str(Path.home()/'.local/bin/ninja')
