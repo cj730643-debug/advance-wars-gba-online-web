@@ -3,7 +3,7 @@ import {relayOrigin} from './transport.mjs';
 import {BUILD_ID} from './version.mjs';
 import {schedulePaint} from './paint-scheduler.mjs';
 const $=id=>document.getElementById(id),canvas=$('game-canvas'),ctx=canvas.getContext('2d',{alpha:false});
-let file,romHash='',worker,active=false,mode='',currentRole='solo',keys=0,paused=false,sound=true,audio,nextAudio=0,generation=0,exportPending=false,dbPromise,writeQueue=Promise.resolve();
+let file,romHash='',worker,active=false,mode='',currentRole='solo',keys=0,paused=false,sound=true,screenControls=true,audio,nextAudio=0,generation=0,exportPending=false,dbPromise,writeQueue=Promise.resolve();
 let audioNode,audioSetup,audioStats={},pendingVideo,cancelPaint=null,painted=0,paintMs=0,lastPaintReport=0;
 const cache=new Map(),lines=[];let saveContext,quickState=null,romSelection=0;
 const stateText={loading:'正在加载模拟器…',auth_sent:'正在认证连接…',waiting:'等待房间玩家到齐…',connected:'全员已连接，准备同步…',synchronizing:'正在交换快照并核对游戏状态…',playing_solo:'单人游戏中 · 按 Enter 开始',playing_online:'联机游戏中 · 同步已完成'};
@@ -17,7 +17,7 @@ const saveKey=(hash,slot)=>`aw-web-1:${hash}:${slot}`;
 const checkpointKey=hash=>`aw-web-checkpoint-v1:${hash}:solo`;
 async function readLocal(key){const db=await database();return new Promise((resolve,reject)=>{const q=db.transaction('saves').objectStore('saves').get(key);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});}
 function putLocal(key,value,extra){writeQueue=writeQueue.catch(()=>{}).then(async()=>{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('saves','readwrite'),store=tx.objectStore('saves');store.put(value,key);if(extra)store.put(extra.value,extra.key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('STORAGE_ABORTED'));});});return writeQueue;}
-function rememberPreferences(){void putLocal('aw-web-preferences-v1',{game:$('game-version').value,players:$('player-count').value,inputDelay:$('input-delay').value,sound}).catch(()=>log('PREFERENCES_WRITE_FAILED'));}
+function rememberPreferences(){void putLocal('aw-web-preferences-v1',{game:$('game-version').value,players:$('player-count').value,inputDelay:$('input-delay').value,sound,screenControls}).catch(()=>log('PREFERENCES_WRITE_FAILED'));}
 async function selectRom(chosen,{remember=true}={}){
  const mine=++romSelection,b=await chosen.arrayBuffer();if(b.byteLength<192||b.byteLength>32*1024*1024||new Uint8Array(b)[0xb2]!==0x96)throw Error('INVALID_ROM');const h=await hash(b);if(mine!==romSelection||active)return;
  file=chosen;romHash=h;quickState=await readLocal(checkpointKey(h)).catch(()=>null);if(mine!==romSelection||active)return;
@@ -26,7 +26,7 @@ async function selectRom(chosen,{remember=true}={}){
  if(remember){await putLocal('aw-web-last-rom-v1',{file:chosen,name:chosen.name,hash:h});rememberPreferences();}
 }
 async function restoreLocalGame(){const selection=romSelection;try{const [prefs,last]=await Promise.all([readLocal('aw-web-preferences-v1'),readLocal('aw-web-last-rom-v1')]);if(romSelection!==selection||active||file)return;
- if(prefs){if(['aw1','aw2'].includes(prefs.game))$('game-version').value=prefs.game;if(['2','3','4'].includes(prefs.players))$('player-count').value=prefs.players;if(['8','16','32'].includes(prefs.inputDelay))$('input-delay').value=prefs.inputDelay;if(typeof prefs.sound==='boolean'){sound=prefs.sound;$('sound').textContent=`声音 ${sound?'开':'关'}`;$('sound').setAttribute('aria-pressed',String(sound));}}
+ if(prefs){if(typeof prefs.screenControls==='boolean'){screenControls=prefs.screenControls;syncScreenControls();}if(['aw1','aw2'].includes(prefs.game))$('game-version').value=prefs.game;if(['2','3','4'].includes(prefs.players))$('player-count').value=prefs.players;if(['8','16','32'].includes(prefs.inputDelay))$('input-delay').value=prefs.inputDelay;if(typeof prefs.sound==='boolean'){sound=prefs.sound;$('sound').textContent=`声音 ${sound?'开':'关'}`;$('sound').setAttribute('aria-pressed',String(sound));}}
  if(last?.file instanceof Blob)await selectRom(new File([last.file],last.name||'game.gba'),{remember:false});
  }catch{log('LOCAL_GAME_RESTORE_FAILED');$('save-status').textContent='无法读取本地游戏，仍可重新选择 ROM 并导入存档。';}}
 
@@ -93,6 +93,9 @@ $('solo').onclick=()=>start('solo');$('solo-restart').onclick=()=>start('solo',{
 $('stop').onclick=()=>{++generation;if(worker){worker.postMessage({type:'stop'});$('game-status').textContent='正在安全结束并保存…';}else{active=false;audio?.suspend();refresh();$('game-status').textContent='已取消启动';}};
 $('pause').onclick=()=>{if(mode!=='solo'||!worker)return;paused=!paused;audioNode?.port.postMessage({reset:true});clearKeys();worker.postMessage({type:'pause',paused});$('pause').textContent=paused?'继续':'暂停';$('game-status').textContent=paused?'已暂停':'单人游戏中';refresh();};
 $('sound').onclick=async()=>{sound=!sound;rememberPreferences();$('sound').textContent=`声音 ${sound?'开':'关'}`;$('sound').setAttribute('aria-pressed',String(sound));worker?.postMessage({type:'audio',enabled:sound});if(sound&&active)await audioStart().catch(()=>{});else await audio?.suspend();};
+function syncScreenControls(){$('screen-controller').hidden=!screenControls;$('toggle-screen-controls').textContent=`按键 ${screenControls?'开':'关'}`;$('toggle-screen-controls').setAttribute('aria-pressed',String(screenControls));}
+$('toggle-screen-controls').onclick=()=>{clearKeys();screenControls=!screenControls;syncScreenControls();rememberPreferences();};
+$('exit-screen-fullscreen').onclick=async()=>{if(document.fullscreenElement)await document.exitFullscreen();};
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('screen').requestFullscreen();}catch{$('game-status').textContent='当前浏览器不支持全屏。';}};
 $('copy-code').onclick=async()=>{try{await navigator.clipboard.writeText($('invite-code').textContent);$('copy-code').textContent='已复制';setTimeout(()=>$('copy-code').textContent='复制',1500);}catch{$('game-status').textContent='复制受限，请手动复制上面的房间码。';}};
 $('diagnose').onclick=async()=>{const b=$('diagnose');b.disabled=true;try{const origin=relayOrigin($('relay').value),start=performance.now();const r=await fetch(origin+'/health',{credentials:'omit',signal:AbortSignal.timeout(10000)});const body=await r.json();if(!r.ok||body.status!=='ok'||body.protocol!=='aw-relay-1')throw Error('INVALID_RELAY_RESPONSE');$('diagnostic-result').textContent=`服务可用 · ${Math.round(performance.now()-start)} ms · aw-relay-1`;}catch(e){$('diagnostic-result').textContent=`检测失败：${errors[e.message]||'无法访问服务，请检查网络与跨域配置。'}`;}finally{b.disabled=false;}};

@@ -11,7 +11,8 @@ assert.deepEqual(keys, [0, 2, 3, 4, 5, 6, 7, 8, 10, 11], 'all ten GBA virtual bu
 assert.equal(controls.length, new Set(keys).size, 'virtual button key bindings must be unique');
 assert(controls.every(m => /\baria-label=/.test(m[0])), 'every virtual button must have an accessible label');
 assert(html.includes('鼠标 / 触屏操作'), 'the virtual controller must be clearly labelled');
-assert(css.includes('.touch-controls{display:flex;'), 'virtual controls must be visible on desktop, not only mobile');
+assert(css.includes('.touch-controls{position:absolute;'), 'virtual controls must overlay the screen');
+assert(html.indexOf('id="screen-controller"')>html.indexOf('id="screen"')&&html.indexOf('id="screen-controller"')<html.indexOf('class="console-bottom"'), 'virtual controls must remain inside the fullscreen screen element');
 assert(!css.includes('.touch-controls{display:none}'), 'virtual controls must not be hidden by default');
 assert(app.includes('b.onpointerdown=e=>{e.preventDefault();if(!active||paused)return;b.setPointerCapture(e.pointerId);setKeys(keys|(1<<+b.dataset.key));}'), 'mouse and touch must use pointer-down to hold a GBA key');
 assert(app.includes("for(const b of document.querySelectorAll('[data-key]'))b.disabled=!active||paused;"), 'virtual controls must be disabled until the game is running and while paused');
