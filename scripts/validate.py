@@ -18,5 +18,6 @@ for line in (d/'SHA256SUMS.txt').read_text().splitlines():
  sha,name=line.split('  ',1);assert hashlib.sha256((d/name).read_bytes()).hexdigest()==sha,name
 with zipfile.ZipFile(d/'source.zip') as z:
  assert z.testzip() is None
+ assert not any(Path(n).name.startswith('.env') or '.vercel' in Path(n).parts for n in z.namelist()),'Runtime credentials must not be archived'
  assert 'aw-web-source/native/core-host.cpp' in z.namelist()
 print('PASS: unique IDs, UI bindings, linked assets, real WASM, source archive, SHA-256 manifest')

@@ -12,3 +12,5 @@ Saving: core battery buffers are copied only after retro_run returns; network ba
 Build: use scripts/build_core.py per README. Full vendor corresponding source is supplied in dist/source.zip; after a fresh Git checkout, extract vendor from that archive first. Do not clone unpinned upstream HEAD and assume equivalent behavior.
 
 Both commercial games remain unverified without user-provided legal ROMs. No commercial bytes were supplied, downloaded, uploaded or included. Multi-Pak menu flow must be validated independently for each title; no claim of two-console or full-match certification.
+
+Follow-up 2026-10-20: Vercel migration verified real remote Chrome startup, Canvas callbacks, paused battery download and byte-identical battery persistence after reload. Browser host and actual Node Worker peer completed 39 bidirectional state checks over public WSS. Physical sound, touch, fullscreen and commercial game matches remain unverified. See current TEST_REPORT.txt.

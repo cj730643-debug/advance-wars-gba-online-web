@@ -1,4 +1,41 @@
 {
+  "vercel-public-http": {
+    "testedAt": "2026-10-20T00:36:10Z",
+    "url": "https://advance-wars-gba-online.vercel.app",
+    "results": {
+      "index": {
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "bytes": 8047
+      },
+      "app.mjs": {
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "bytes": 13946
+      },
+      "emulator-worker.mjs": {
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "bytes": 4877
+      },
+      "transport.mjs": {
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "bytes": 3589
+      },
+      "aw-core.mjs": {
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "bytes": 106126
+      },
+      "aw-core.wasm": {
+        "status": 200,
+        "contentType": "application/wasm",
+        "bytes": 1351947
+      },
+      "relayPreflight": "passed"
+    }
+  },
   "public-cors": {
     "testedAt": "2026-10-20T00:17:49Z",
     "relay": "https://aw-relay-production.up.railway.app",
@@ -88,9 +125,36 @@
       }
     ]
   },
+  "browser-public-peer": {
+    "testedAt": "2026-10-20T00:36:41.718Z",
+    "scope": "Actual Chrome browser host + actual Node Worker join through public Railway WSS; CC0 diagnostic ROM only",
+    "states": [
+      "loading",
+      "auth_sent",
+      "waiting",
+      "connected",
+      "synchronizing",
+      "playing_online"
+    ],
+    "errors": [
+      "PEER_DISCONNECTED"
+    ],
+    "metrics": {
+      "type": "metrics",
+      "frames": 2530,
+      "audioFrames": 1287155,
+      "afterReady": 2347,
+      "ready": true,
+      "stateSent": 39,
+      "stateReceived": 39
+    },
+    "passed": true,
+    "saveBytes": 131072,
+    "endedReason": "PEER_DISCONNECTED"
+  },
   "worker-smoke": {
-    "testedAt": "2026-10-20T00:17:08.056Z",
-    "relay": "http://127.0.0.1:42937",
+    "testedAt": "2026-10-20T00:25:17.963Z",
+    "relay": "http://127.0.0.1:43613",
     "scope": "Actual browser Worker source in Node Worker, CC0 diagnostic ROM; no browser UI or commercial game claim",
     "solo": {
       "mode": "solo",
@@ -129,14 +193,14 @@
         "metrics": {
           "type": "metrics",
           "frames": 181,
-          "audioFrames": 77452,
-          "afterReady": 142,
+          "audioFrames": 78550,
+          "afterReady": 144,
           "ready": true,
           "stateSent": 2,
           "stateReceived": 2
         },
         "video": 181,
-        "audio": 77452,
+        "audio": 78550,
         "saveBytes": 131072,
         "exportWhilePaused": false,
         "complete": true
@@ -155,22 +219,45 @@
         "metrics": {
           "type": "metrics",
           "frames": 181,
-          "audioFrames": 76888,
-          "afterReady": 141,
+          "audioFrames": 77986,
+          "afterReady": 143,
           "ready": true,
           "stateSent": 2,
           "stateReceived": 2
         },
         "video": 181,
-        "audio": 76888,
+        "audio": 77986,
         "saveBytes": 131072,
         "exportWhilePaused": false,
         "complete": true
       }
     ]
   },
+  "browser-ui-evidence": {
+    "testedAt": "2026-10-20T00:37:39Z",
+    "url": "https://advance-wars-gba-online.vercel.app/",
+    "scope": "Actual remote Chrome with CC0 diagnostic ROM, browser host and Node Worker peer over public WSS",
+    "soloStarted": true,
+    "pausedSaveExportBytes": 131072,
+    "networkReady": true,
+    "hostMetrics": {
+      "type": "metrics",
+      "frames": 2523,
+      "audioFrames": 1284976,
+      "afterReady": 2343,
+      "ready": true,
+      "stateSent": 39,
+      "stateReceived": 39
+    },
+    "safeStopAndBatteryPersist": true,
+    "batteryPersistAfterReload": {
+      "bytes": 131072,
+      "sha256": "b5a41c3758763bbec72769fab4a2533bf2db0b6312d93d25a695f9e4b9e02260",
+      "equalsPausedExport": true
+    }
+  },
   "core-smoke": {
-    "testedAt": "2026-10-20T00:17:03.595Z",
+    "testedAt": "2026-10-20T00:25:13.494Z",
     "fixture": "CC0 gba-link-continuous",
     "wasmSHA256": "199c6e8f0ee1fb107e875b3f6f46c67e904074adaaa6b2df000cbf43cd92aac6",
     "frames": 180,

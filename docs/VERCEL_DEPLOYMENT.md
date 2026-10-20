@@ -1,9 +1,14 @@
 # GitHub + Vercel deployment
-Frontend: static WebAssembly application; Relay: persistent Railway Node WebSocket service.
+Production: https://advance-wars-gba-online.vercel.app/
+GitHub: https://github.com/cj730643-debug/advance-wars-gba-online-web
+Vercel project: advance-wars-gba-online (prj_ontIiIZHwAaJKufa0L12YDvDpARE).
+Git integration: cj730643-debug/advance-wars-gba-online-web, production branch main.
 
-Vercel settings: framework Other, root repository root, build `node scripts/vercel-build.mjs`, install command empty, output `dist`. Do not deploy the long-lived Relay as a Vercel Function.
-The tested WASM and full corresponding native source ZIP are committed as release artifacts. Browser code in src is copied into dist during every Vercel build. Native changes require Emscripten rebuild + core/Worker tests + prepare before commit. Build rejects a WASM hash that differs from the recorded smoke test.
+Framework Other; repository root; build node scripts/vercel-build.mjs; empty install command; output dist. Every main push automatically triggers a Vercel production build.
+WSS Relay remains on Railway at https://aw-relay-production.up.railway.app. Its ALLOWED_ORIGINS includes the exact production origin and retained Sites origin; preview origins are not enabled.
+Canonical production alias is public. Preview and unique deployment URLs retain Vercel Authentication under prod_deployment_urls_and_all_previews.
 
-After assigning a production domain, append the exact HTTPS origin to the Relay ALLOWED_ORIGINS comma-separated list and wait for Railway SUCCESS. Restrict origins to actual production sites. Preview domains are not enabled automatically.
+The tested WASM and split corresponding native source archive are committed. vercel-build reassembles dist/source.zip with SHA-256 validation and copies current src files. Native changes require Emscripten rebuild, tests, scripts/prepare.py then scripts/split-source.mjs before commit.
+.env files, .vercel credentials/runtime state and logs are excluded from source packaging and Git. Never commit device login credentials or Vercel OIDC tokens.
 
-GitHub connection currently supports existing repository writes but not new repository creation. Once an empty repository with README/main exists and is granted to the connected GitHub app, the prepared source can be uploaded and linked to this Vercel project. Until then, direct-file deployment does not provide automatic GitHub deployment.
+Verification: public HTTP/JS/WASM loading and actual remote Chrome local-ROM startup, paused battery export, IndexedDB battery persistence after reload, and browser-host/Node-peer WSS state checks passed with CC0 diagnostic ROM. Commercial game and two Windows browser acceptance remain unverified.
