@@ -31,3 +31,7 @@
 .screen.expanded{position:fixed;inset:0;z-index:1000;width:100vw;height:100dvh;aspect-ratio:auto;border:0;border-radius:0;background:#11180e}
 body.screen-expanded{overflow:hidden}
 .screen.expanded #exit-screen-fullscreen{display:block}
+
+.reconnect-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}.reconnect-panel button{border:1px solid currentColor;border-radius:5px;background:transparent;color:inherit;white-space:nowrap;padding:7px 11px}
+
+.game-toolbar>div{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px}

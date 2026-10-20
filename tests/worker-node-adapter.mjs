@@ -11,6 +11,13 @@ if(workerData?.corruptStateAt60){const RealWebSocket=globalThis.WebSocket;
  globalThis.WebSocket=class extends RealWebSocket{send(data){if(data instanceof Uint8Array && data.length===56 && data[6]===3 && new DataView(data.buffer,data.byteOffset).getBigUint64(16)===60n){data=data.slice();data[24]^=1;}return super.send(data);}};
 }
 const realFetch=globalThis.fetch;
+if(workerData?.disconnectBeforeInput){
+ const RealWebSocket=globalThis.WebSocket;let dropped=false;
+ globalThis.WebSocket=class extends RealWebSocket{send(data){
+  if(!dropped&&data instanceof Uint8Array&&data.length>=38&&data[6]===2&&new DataView(data.buffer,data.byteOffset).getBigUint64(28)>=150n){dropped=true;parentPort.postMessage({type:'test_drop',phase:'before_input_send'});super.close();return;}
+  return super.send(data);
+ }};
+}
 globalThis.fetch=async (url,options)=>{const u=new URL(url);if(u.protocol==='file:')return new Response(await readFile(u));return realFetch(url,options);};
 globalThis.postMessage=(message,transfers)=>{
  parentPort.postMessage(message,transfers);

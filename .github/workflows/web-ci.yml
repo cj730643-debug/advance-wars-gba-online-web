@@ -27,6 +27,7 @@ jobs:
       - run: node --check src/emulator-worker.mjs
       - run: node tests/background-mode-smoke.mjs
       - run: node tests/packet-wait.test.mjs
+      - run: node --test tests/frame-blender.test.mjs
       - run: node tests/mouse-controls-smoke.mjs
       - run: node tests/solo-core-diagnostic-smoke.mjs
       - run: node --check src/emulator-worker.mjs
@@ -40,4 +41,7 @@ jobs:
       - run: node tests/worker-group-smoke.mjs
         env:
           STALL_PEER_MS: '2200'
+      - run: node tests/worker-group-smoke.mjs
+        env:
+          TEST_RECONNECT: '1'
       - run: node tests/group-failure-smoke.mjs

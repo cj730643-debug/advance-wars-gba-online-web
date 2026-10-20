@@ -38,7 +38,7 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
    }else throw Error('BAD_PACKET');
   }
  }
- async function until(test,timeout){const start=performance.now();for(;;){drain();if(test())return;if(performance.now()-start>=timeout)throw Error(installed?'GROUP_SYNC_TIMEOUT':'GROUP_HANDSHAKE_TIMEOUT');await front.incoming.wait(1000);}}
+ async function until(test,timeout){const start=performance.now();for(;;){drain();if(!front.networkPaused&&test())return;if(performance.now()-start>=timeout)throw Error(installed?'GROUP_SYNC_TIMEOUT':'GROUP_HANDSHAKE_TIMEOUT');await front.incoming.wait(1000);}}
  function beginCheckpoint(){
   const frame=c._aw_group_frame(),digest=hash(),packet=new Uint8Array(40);new DataView(packet.buffer).setBigUint64(0,BigInt(frame));packet.set(digest,8);
   let state=states.get(frame);if(!state){state={hashes:Array(players).fill(null),acks:Array(players).fill(null)};states.set(frame,state);}state.hashes[role]=digest;
@@ -64,6 +64,7 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
   check('seed');send(2,input());if(c._aw_group_seed_next){for(let more;(more=c._aw_group_seed_next())!==0;){if(more!==1)throw Error('GROUP_SEED_FAILED');send(2,input());}}await consensus();emit('state',{state:'playing_online'});
   let next=performance.now();lastMetrics=next;windowFrame=c._aw_group_frame();
   while(!stopped()&&!front.terminal){
+   if(front.networkPaused){await until(()=>true,MAX_SYNC_WAIT_MS);next=lastMetrics=performance.now();windowFrame=c._aw_group_frame();runMs=inputWaitMs=checkpointMs=0;}
    check('author',front.keys);send(2,input());let t=performance.now();await until(()=>!!c._aw_group_frame_ready(),MAX_SYNC_WAIT_MS);finishCheckpoint();inputWaitMs+=performance.now()-t;t=performance.now();check('run');runMs+=performance.now()-t;
    if(c._aw_group_frame()%60===0){t=performance.now();if(pendingCheck)await until(finishCheckpoint,MAX_SYNC_WAIT_MS);beginCheckpoint();if(pipeline)finishCheckpoint();else await until(finishCheckpoint,MAX_SYNC_WAIT_MS);checkpointMs+=performance.now()-t;}
    const now=performance.now();if(now-lastMetrics>=1000){const n=c._aw_group_frame()-windowFrame;lastPerformance={frameRate:Math.round(n*10000/(now-lastMetrics))/10,coreMsPerFrame:Math.round(runMs*100/n)/100,inputWaitMsPerFrame:Math.round(inputWaitMs*100/n)/100,checkpointMs:Math.round(checkpointMs),background:isBackground()};metrics({ready:true,afterReady:c._aw_group_frame(),stateSent:checks*2,stateReceived:checks*(players-1)*2,stateCheckpoints:checks,players,inputDelay,verifiedFrame:c._aw_group_verified_frame?.()??0,...lastPerformance});lastMetrics=now;windowFrame=c._aw_group_frame();runMs=inputWaitMs=checkpointMs=0;}

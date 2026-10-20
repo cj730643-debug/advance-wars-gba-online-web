@@ -1617,5 +1617,433 @@
     "rafThrottledBeforeFallbackDrawFps": 1,
     "uiAfterFallback": "模拟 59.7 FPS · 绘制 59.7 FPS · 核心 1.2 ms/帧 · 等包 0.0 ms/帧",
     "sessionEndedSafely": true
+  },
+  "reconnect-worker-group-smoke": {
+    "testedAt": "2026-10-20T09:45:40.659Z",
+    "relay": "http://127.0.0.1:33523",
+    "stallMs": 0,
+    "receiveDelayMs": 0,
+    "scope": "Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified",
+    "cases": [
+      {
+        "players": 2,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "reconnecting",
+              "reconnected"
+            ],
+            "errors": [],
+            "metrics": {
+              "type": "metrics",
+              "frames": 423,
+              "audioFrames": 231618,
+              "videoCoalesced": 0,
+              "afterReady": 423,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 16,
+              "stateCheckpoints": 8,
+              "players": 2,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.7,
+              "coreMsPerFrame": 2.54,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 6,
+              "background": false
+            },
+            "video": 423,
+            "audio": 231618,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [
+              {
+                "type": "test_drop",
+                "phase": "before_input_send"
+              }
+            ],
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "peer_reconnecting",
+              "reconnected"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 423,
+              "audioFrames": 231600,
+              "videoCoalesced": 0,
+              "afterReady": 423,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 16,
+              "stateCheckpoints": 8,
+              "players": 2,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.7,
+              "coreMsPerFrame": 1.77,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 6,
+              "background": false
+            },
+            "video": 423,
+            "audio": 231600,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [],
+            "saveRole": "p1"
+          }
+        ],
+        "safeDisconnect": true
+      },
+      {
+        "players": 3,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "reconnecting",
+              "reconnected"
+            ],
+            "errors": [],
+            "metrics": {
+              "type": "metrics",
+              "frames": 423,
+              "audioFrames": 231616,
+              "videoCoalesced": 0,
+              "afterReady": 423,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 32,
+              "stateCheckpoints": 8,
+              "players": 3,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.5,
+              "coreMsPerFrame": 2.91,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 9,
+              "background": false
+            },
+            "video": 423,
+            "audio": 231616,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [
+              {
+                "type": "test_drop",
+                "phase": "before_input_send"
+              }
+            ],
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "peer_reconnecting",
+              "reconnected"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 423,
+              "audioFrames": 231600,
+              "videoCoalesced": 0,
+              "afterReady": 423,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 32,
+              "stateCheckpoints": 8,
+              "players": 3,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.8,
+              "coreMsPerFrame": 3.49,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 11,
+              "background": false
+            },
+            "video": 423,
+            "audio": 231600,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [],
+            "saveRole": "p1"
+          },
+          {
+            "mode": "join",
+            "role": 2,
+            "states": [
+              "loading",
+              "auth_sent",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "peer_reconnecting",
+              "reconnected"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 423,
+              "audioFrames": 231600,
+              "videoCoalesced": 0,
+              "afterReady": 423,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 32,
+              "stateCheckpoints": 8,
+              "players": 3,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.8,
+              "coreMsPerFrame": 2.45,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 10,
+              "background": false
+            },
+            "video": 423,
+            "audio": 231600,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [],
+            "saveRole": "p2"
+          }
+        ],
+        "safeDisconnect": true
+      },
+      {
+        "players": 4,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "reconnecting",
+              "reconnected"
+            ],
+            "errors": [],
+            "metrics": {
+              "type": "metrics",
+              "frames": 425,
+              "audioFrames": 232714,
+              "videoCoalesced": 0,
+              "afterReady": 425,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 48,
+              "stateCheckpoints": 8,
+              "players": 4,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.9,
+              "coreMsPerFrame": 3.96,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 13,
+              "background": false
+            },
+            "video": 425,
+            "audio": 232714,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [
+              {
+                "type": "test_drop",
+                "phase": "before_input_send"
+              }
+            ],
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "peer_reconnecting",
+              "reconnected"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 425,
+              "audioFrames": 232698,
+              "videoCoalesced": 0,
+              "afterReady": 425,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 48,
+              "stateCheckpoints": 8,
+              "players": 4,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.8,
+              "coreMsPerFrame": 6.24,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 27,
+              "background": false
+            },
+            "video": 425,
+            "audio": 232698,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [],
+            "saveRole": "p1"
+          },
+          {
+            "mode": "join",
+            "role": 2,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "peer_reconnecting",
+              "reconnected"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 425,
+              "audioFrames": 232698,
+              "videoCoalesced": 0,
+              "afterReady": 425,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 48,
+              "stateCheckpoints": 8,
+              "players": 4,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.7,
+              "coreMsPerFrame": 3.65,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 13,
+              "background": false
+            },
+            "video": 425,
+            "audio": 232698,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [],
+            "saveRole": "p2"
+          },
+          {
+            "mode": "join",
+            "role": 3,
+            "states": [
+              "loading",
+              "auth_sent",
+              "connected",
+              "synchronizing",
+              "playing_online",
+              "peer_reconnecting",
+              "reconnected"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 425,
+              "audioFrames": 232698,
+              "videoCoalesced": 0,
+              "afterReady": 425,
+              "ready": true,
+              "stateSent": 16,
+              "stateReceived": 48,
+              "stateCheckpoints": 8,
+              "players": 4,
+              "inputDelay": 32,
+              "verifiedFrame": 420,
+              "frameRate": 59.7,
+              "coreMsPerFrame": 3.4,
+              "inputWaitMsPerFrame": 0.01,
+              "checkpointMs": 13,
+              "background": false
+            },
+            "video": 425,
+            "audio": 232698,
+            "saveBytes": 131072,
+            "complete": true,
+            "stalls": [],
+            "saveRole": "p3"
+          }
+        ],
+        "safeDisconnect": true
+      }
+    ],
+    "wasmSHA256": "ea5b53500b0b56fc66e7784403b32e52a3afe4abe058f1b536a937c7b3135698",
+    "protocol": "aw-relay-group-2"
+  },
+  "frame-blender-tests": {
+    "testedAt": "2026-10-20T13:28:34Z",
+    "checks": [
+      "known red and blue frames blend to purple midway",
+      "source buffers unchanged",
+      "two source surfaces and one scheduled callback under burst",
+      "60Hz paint cap",
+      "stops after last transition and on reset"
+    ],
+    "scope": "Lightweight alpha frame blending; no AI/optical flow, no simulation speed claim"
   }
 }
