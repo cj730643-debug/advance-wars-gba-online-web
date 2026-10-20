@@ -24,7 +24,7 @@ else:
  needle='adapter->sessionConfig.callbacks = &_sessionCallbacks;'
  if text.count(needle)!=1:
   raise SystemExit('Could not locate unique GBA Wi-Fi Link callback initialization')
- insertion=marker+'\\n\\t'+cal+'\\n\\t'+accept+'\\n\\t'+needle
+ insertion=marker+'\n\t'+cal+'\n\t'+accept+'\n\t'+needle
  text=text.replace(needle,insertion,1)
 adapter.write_text(text,encoding='utf-8')
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
