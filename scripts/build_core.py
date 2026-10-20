@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build the modified pinned mGBA libretro core for a single browser Worker."""
-import argparse,os,subprocess,shutil
+import argparse,os,subprocess,shutil,re
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--emsdk',required=True);p.add_argument('--source',required=True);a=p.parse_args()
 root=Path(__file__).resolve().parent.parent
@@ -11,15 +11,20 @@ assert 'mLibretroAWGroupCore' in (src/'src/platform/libretro/libretro.c').read_t
 assert '_pairSleep' in (src/'src/gba/replicated-pair.c').read_text(encoding="utf-8")
 # The browser profile advertises a WAN-safe 10 s calibration window. The pinned
 # upstream helper currently hard-codes 3 s for calibration/accept deadlines.
-# Patch that exact constant before building; fail closed if upstream changes it.
+# Match the constant inside this function rather than depending on source spacing.
 session=src/'src/gba/sio/netplay/session-v2.c'
 text=session.read_text(encoding='utf-8')
-old='const uint64_t duration = UINT64_C(3000000);'
-new='const uint64_t duration = UINT64_C(10000000);'
-if text.count(old)==1:
- text=text.replace(old,new,1)
-elif text.count(new)!=1:
- raise SystemExit('Expected exactly one protocol-v2 absolute deadline constant')
+start=text.find('static bool _absoluteDeadline(')
+end=text.find('\n}',start)
+if start<0 or end<0:
+ raise SystemExit('Could not locate protocol-v2 absolute deadline helper')
+body=text[start:end]
+match=re.search(r'UINT64_C\(\s*(\d+)\s*\)',body)
+if not match or match.group(1) not in {'3000000','10000000'}:
+ raise SystemExit('Unexpected protocol-v2 absolute deadline constant: '+repr(body[:500]))
+if match.group(1)=='3000000':
+ body=body[:match.start(1)]+'10000000'+body[match.end(1):]
+ text=text[:start]+body+text[end:]
 session.write_text(text,encoding='utf-8')
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
