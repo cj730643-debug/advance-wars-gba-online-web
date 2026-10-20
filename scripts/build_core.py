@@ -9,6 +9,18 @@ if (src/'.git').exists():
  assert subprocess.check_output(['git','-C',str(src),'rev-parse','HEAD'],text=True).strip()=='9e919b0cfbb93af7d1171570dfc6745d00eeebab'
 assert 'mLibretroAWGroupCore' in (src/'src/platform/libretro/libretro.c').read_text(encoding="utf-8"), 'Extract the complete corresponding vendor source from dist/source.zip first'
 assert '_pairSleep' in (src/'src/gba/replicated-pair.c').read_text(encoding="utf-8")
+# The browser profile advertises a WAN-safe 10 s calibration window. The pinned
+# upstream helper currently hard-codes 3 s for calibration/accept deadlines.
+# Patch that exact constant before building; fail closed if upstream changes it.
+session=src/'src/gba/sio/netplay/session-v2.c'
+text=session.read_text(encoding='utf-8')
+old='const uint64_t duration = UINT64_C(3000000);'
+new='const uint64_t duration = UINT64_C(10000000);'
+if text.count(old)==1:
+ text=text.replace(old,new,1)
+elif text.count(new)!=1:
+ raise SystemExit('Expected exactly one protocol-v2 absolute deadline constant')
+session.write_text(text,encoding='utf-8')
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
 cmake=shutil.which('cmake') or str(Path.home()/'.local/bin/cmake');ninja=shutil.which('ninja') or str(Path.home()/'.local/bin/ninja')
