@@ -148,8 +148,8 @@
     "saveBytes": 131072
   },
   "worker-smoke": {
-    "testedAt": "2026-10-20T07:37:49.847Z",
-    "relay": "http://127.0.0.1:34655",
+    "testedAt": "2026-10-20T07:39:10.742Z",
+    "relay": "http://127.0.0.1:41229",
     "scope": "Actual browser Worker source in Node Worker, CC0 diagnostic ROM; no browser UI or commercial game claim",
     "solo": {
       "mode": "solo",
@@ -188,16 +188,16 @@
         "errors": [],
         "metrics": {
           "type": "metrics",
-          "frames": 175,
-          "audioFrames": 95558,
-          "afterReady": 175,
+          "frames": 174,
+          "audioFrames": 95010,
+          "afterReady": 174,
           "ready": true,
           "stateSent": 3,
           "stateReceived": 3,
           "players": 2
         },
-        "video": 175,
-        "audio": 95558,
+        "video": 174,
+        "audio": 95010,
         "saveBytes": 131072,
         "exportWhilePaused": false,
         "complete": true
@@ -217,16 +217,16 @@
         ],
         "metrics": {
           "type": "metrics",
-          "frames": 176,
-          "audioFrames": 96090,
-          "afterReady": 176,
+          "frames": 173,
+          "audioFrames": 94444,
+          "afterReady": 173,
           "ready": true,
           "stateSent": 3,
           "stateReceived": 3,
           "players": 2
         },
-        "video": 176,
-        "audio": 96090,
+        "video": 173,
+        "audio": 94444,
         "saveBytes": 131072,
         "exportWhilePaused": false,
         "complete": true
@@ -1301,5 +1301,31 @@
         "safeDisconnect": true
       }
     ]
+  },
+  "browser-unified-peer": {
+    "testedAt": "2026-10-20T07:45:37.325Z",
+    "scope": "Production Chrome UI host and real WASM Node Worker peer via public WSS; CC0 ROM",
+    "states": [
+      "loading",
+      "auth_sent",
+      "waiting",
+      "connected",
+      "synchronizing",
+      "playing_online"
+    ],
+    "errors": [
+      "PEER_DISCONNECTED"
+    ],
+    "video": 4679,
+    "metrics": {
+      "type": "metrics",
+      "frames": 4679,
+      "audioFrames": 2566548,
+      "afterReady": 4679,
+      "ready": true,
+      "stateSent": 78,
+      "stateReceived": 78,
+      "players": 2
+    }
   }
 }
