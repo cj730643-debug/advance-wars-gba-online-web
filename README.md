@@ -1,5 +1,5 @@
 # 高级战争 GBA 联机 · 网页版 α 0.4
-真实 mGBA libretro 核心编译为 WebAssembly，运行在专用 Worker。支持本地 ROM、Canvas 视频、Web Audio、键盘/触控、电池存档与 2–4 人 WSS 中继适配。没有商业 ROM 或 BIOS。
+真实 mGBA libretro 核心编译为 WebAssembly，运行在专用 Worker。支持本地 ROM、Canvas 视频、Web Audio、键盘/触控、电池存档与 2–4 人 WSS 中继适配。单人模式下普通核心诊断日志不再误判为联机同步失败；真正的核心停止仍会显示诊断提示。没有商业 ROM 或 BIOS。
 
 ## 构建
 上游 https://github.com/Aelvryx/mgba-wifi-link commit `9e919b0cfbb93af7d1171570dfc6745d00eeebab`，修改后完整源码在网页「对应源码」中。

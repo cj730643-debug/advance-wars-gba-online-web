@@ -27,7 +27,7 @@ function createIncomingQueue(){
 function fail(reason){if(!fatal&&!stopping){fatal=reason;front.terminal=true;emit('error',{reason});}}
 let pageHidden=false;
 const front={keys:0,terminal:false,incoming:createIncomingQueue(),audioEnabled:true,
- notice(text,error){emit('log',{text:String(text).slice(0,2000)});if(error)fail(/calibrat.*(timeout|timed out)/i.test(text)?'CORE_CALIBRATION_TIMEOUT':'CORE_SYNC_FAILURE');},
+ notice(text,error){const detail=String(text).slice(0,2000);emit('log',{text:detail});if(!error)return;if(mode==='solo'){emit('log',{text:`single-player core diagnostic (non-fatal): ${detail}`});return;}fail(/calibrat.*(timeout|timed out)/i.test(detail)?'CORE_CALIBRATION_TIMEOUT':'CORE_SYNC_FAILURE');},
  video(bytes,w,h){++frames;postMessage({type:'video',buffer:bytes.buffer,w,h},[bytes.buffer]);},
  audio(bytes,rate){audioFrames+=bytes.length/2;if(front.audioEnabled)postMessage({type:'audio',buffer:bytes.buffer,rate},[bytes.buffer]);}};
 function battery(){if(!core)return;const n=core._aw_save_size(),p=core._aw_save_data();if(n>0&&n<=1024*1024&&p){const bytes=core.HEAPU8.slice(p,p+n);postMessage({type:'save',role,buffer:bytes.buffer},[bytes.buffer]);}}
