@@ -32,6 +32,7 @@ jobs:
       - run: node --check src/emulator-worker.mjs
       - run: npm test --prefix relay
       - run: node -e "require('fs').mkdirSync('logs',{recursive:true})"
+      - run: node tests/presentation-smoke.mjs
       - run: node tests/core-smoke.mjs
       - run: node tests/worker-smoke.mjs
       - run: node tests/core-group-smoke.mjs

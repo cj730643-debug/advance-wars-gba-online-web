@@ -67,7 +67,7 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
    check('author',front.keys);send(2,input());let t=performance.now();await until(()=>!!c._aw_group_frame_ready(),MAX_SYNC_WAIT_MS);finishCheckpoint();inputWaitMs+=performance.now()-t;t=performance.now();check('run');runMs+=performance.now()-t;
    if(c._aw_group_frame()%60===0){t=performance.now();if(pendingCheck)await until(finishCheckpoint,MAX_SYNC_WAIT_MS);beginCheckpoint();if(pipeline)finishCheckpoint();else await until(finishCheckpoint,MAX_SYNC_WAIT_MS);checkpointMs+=performance.now()-t;}
    const now=performance.now();if(now-lastMetrics>=1000){const n=c._aw_group_frame()-windowFrame;lastPerformance={frameRate:Math.round(n*10000/(now-lastMetrics))/10,coreMsPerFrame:Math.round(runMs*100/n)/100,inputWaitMsPerFrame:Math.round(inputWaitMs*100/n)/100,checkpointMs:Math.round(checkpointMs),background:isBackground()};metrics({ready:true,afterReady:c._aw_group_frame(),stateSent:checks*2,stateReceived:checks*(players-1)*2,stateCheckpoints:checks,players,inputDelay,verifiedFrame:c._aw_group_verified_frame?.()??0,...lastPerformance});lastMetrics=now;windowFrame=c._aw_group_frame();runMs=inputWaitMs=checkpointMs=0;}
-   next+=1000/59.7275;if(next<now-100)next=now;await sleep(Math.max(0,next-now));drain();finishCheckpoint();
+   next+=1000/59.7275;const pacedNow=performance.now();if(next<pacedNow-100)next=pacedNow;await sleep(Math.max(0,next-pacedNow));drain();finishCheckpoint();
   }
  }finally{c._aw_group_stop();metrics({ready:installed,afterReady:c._aw_group_frame(),stateSent:checks*2,stateReceived:checks*(players-1)*2,stateCheckpoints:checks,players,inputDelay,verifiedFrame:c._aw_group_verified_frame?.()??0,...lastPerformance});}
 }

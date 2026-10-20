@@ -1579,5 +1579,16 @@
       "Continue launched and displayed 已继续上次进度"
     ],
     "scope": "Actual Chrome UI + IndexedDB reload; commercial games and multiplayer refresh reconnect not tested or claimed"
+  },
+  "presentation-smoke": {
+    "testedAt": "2026-10-20T08:59:41.970Z",
+    "scope": "Real WASM solo with simulated 150ms display ACK delay; no commercial game FPS claim",
+    "video": 14,
+    "frames": 121,
+    "frameRate": 59.7,
+    "videoCoalesced": 106,
+    "checkpoint": true,
+    "stereoResampling": true,
+    "continuousAudioBlocks": 3000
   }
 }
