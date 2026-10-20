@@ -6,17 +6,19 @@ import { pathToFileURL } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 
 export const PROTOCOL = 'aw-relay-1';
+export const GROUP_PROTOCOL = 'aw-relay-group-1';
 const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const token = () => randomBytes(32).toString('base64url');
 const code = () => [...randomBytes(8)].map(n => alphabet[n % alphabet.length]).join('');
 const hash = /^[a-f0-9]{64}$/;
-function manifest(m) {
-  if (!m || !['aw1', 'aw2', 'diagnostic'].includes(m.game) || m.protocol !== PROTOCOL ||
-      m.coreProtocol !== 'mgba-gba-link-replicated-v2' ||
+function manifest(m, group = false) {
+  if (!m || !['aw1', 'aw2', 'diagnostic'].includes(m.game) || m.protocol !== (group ? GROUP_PROTOCOL : PROTOCOL) ||
+      m.coreProtocol !== (group ? 'mgba-gba-link-group-1' : 'mgba-gba-link-replicated-v2') ||
+      (group && (!Number.isInteger(m.players) || m.players < 2 || m.players > 4)) ||
       !['rom', 'core', 'config'].every(k => typeof m[k] === 'string' && hash.test(m[k]))) {
     throw Object.assign(new Error('INVALID_MANIFEST'), { status: 400 });
   }
-  return Object.fromEntries(['game', 'protocol', 'coreProtocol', 'rom', 'core', 'config'].map(k => [k, m[k]]));
+  return Object.fromEntries(['game', 'protocol', 'coreProtocol', 'rom', 'core', 'config', ...(group ? ['players'] : [])].map(k => [k, m[k]]));
 }
 
 // Opaque binary envelopes carry unmodified core packets. Sequence belongs to
@@ -26,6 +28,15 @@ export function unpack(bytes, expected) {
   const n = bytes.readBigUInt64BE(4);
   if (n !== expected || n === 0n || n === 0xffffffffffffffffn) throw new Error('BAD_SEQUENCE');
   return bytes.subarray(12);
+}
+
+// Group envelope: magic, authenticated sender, player count, payload kind,
+// reserved zero, and strictly increasing unsigned 64-bit sequence.
+export function unpackGroup(bytes, expected, role, players) {
+ if(bytes.length<=16 || bytes.length>65548 || bytes.toString('ascii',0,4)!=='AWG1' || bytes[4]!==role || bytes[5]!==players || ![1,2,3].includes(bytes[6]) || bytes[7]!==0)throw Error('BAD_PACKET');
+ const n=bytes.readBigUInt64BE(8);
+ if(n!==expected || n===0n || n===0xffffffffffffffffn)throw Error('BAD_SEQUENCE');
+ return bytes.subarray(16);
 }
 
 export function createRelay(options = {}) {
@@ -64,7 +75,7 @@ export function createRelay(options = {}) {
     return { role, token: token(), expires: clock() + authTtl, ws: null, seq: 1n, lastSeen: clock() };
   }
   function publicCredential(room, p) {
-    return { code: room.code, role: p.role, token: p.token, expiresInMs: authTtl, protocol: PROTOCOL };
+    return { code: room.code, role: p.role, token: p.token, expiresInMs: authTtl, protocol: room.manifest.protocol, players: room.players.length };
   }
   function sweep() {
     const now = clock();
@@ -87,7 +98,7 @@ export function createRelay(options = {}) {
       if (!allowedOrigins.has(req.headers.origin) || !['GET', 'POST'].includes(req.headers['access-control-request-method']) || headers.some(h => h !== 'content-type')) return reply(403, { error: 'ORIGIN_REJECTED' });
       res.writeHead(204, { 'Access-Control-Allow-Origin': req.headers.origin, 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '600', 'Vary': 'Origin' }); return res.end();
     }
-    if (req.url === '/health' && req.method === 'GET') return reply(200, { status: 'ok', protocol: PROTOCOL });
+    if (req.url === '/health' && req.method === 'GET') return reply(200, { status: 'ok', protocol: PROTOCOL, groupProtocol: GROUP_PROTOCOL });
     if (req.method !== 'POST') return reply(404, { error: 'NOT_FOUND' });
     // Trust the TCP peer only. A reverse proxy must also impose its own per-IP
     // limits; user-controlled X-Forwarded-For is never trusted here.
@@ -98,25 +109,27 @@ export function createRelay(options = {}) {
         body += chunk.toString('utf8');
         if (Buffer.byteLength(body) > 4096) { reply(413, { error: 'BODY_TOO_LARGE' }); req.destroy(); return; }
       }
-      const m = manifest(JSON.parse(body));
+      const group = req.url.startsWith('/v2/');
+      const m = manifest(JSON.parse(body), group);
       sweep();
-      if (req.url === '/v1/rooms') {
+      if ((req.url === '/v1/rooms' || req.url === '/v2/rooms')) {
         if (rooms.size >= maxRooms) return reply(503, { error: 'CAPACITY' });
         let c; do { c = code(); } while (rooms.has(c));
-        const r = { code: c, manifest: m, players: [credential(0), null], created: clock(), expires: clock() + ttl, ready: false, ended: false };
+        const r = { code: c, manifest: m, players: Array.from({length:group ? m.players : 2},(_,i)=>i===0?credential(0):null), created: clock(), expires: clock() + ttl, ready: false, ended: false };
         rooms.set(c, r);
         return reply(201, publicCredential(r, r.players[0]));
       }
-      const match = /^\/v1\/rooms\/([A-Z2-9]{8})\/join$/.exec(req.url);
+      const match = /^\/v[12]\/rooms\/([A-Z2-9]{8})\/join$/.exec(req.url);
       if (!match) return reply(404, { error: 'NOT_FOUND' });
       const r = rooms.get(match[1]);
       if (!r) return reply(404, { error: 'INVALID_CODE' });
-      if (r.players[1]) return reply(409, { error: 'ROOM_FULL' });
+      const role = r.players.findIndex(p=>!p);
+      if (role < 0) return reply(409, { error: 'ROOM_FULL' });
       if (r.manifest.rom !== m.rom) return reply(409, { error: 'ROM_MISMATCH' });
       if (r.manifest.protocol !== m.protocol || r.manifest.coreProtocol !== m.coreProtocol) return reply(409, { error: 'PROTOCOL_MISMATCH' });
       if (JSON.stringify(r.manifest) !== JSON.stringify(m)) return reply(409, { error: 'CONFIG_MISMATCH' });
-      r.players[1] = credential(1);
-      return reply(200, publicCredential(r, r.players[1]));
+      r.players[role] = credential(role);
+      return reply(200, publicCredential(r, r.players[role]));
     } catch (e) { if (!res.headersSent) reply(e.status ?? 400, { error: e.status ? e.message : 'BAD_REQUEST' }); }
   });
   server.requestTimeout = 10_000;
@@ -144,14 +157,15 @@ export function createRelay(options = {}) {
           if (binary || data.length > 512) throw new Error('AUTH_REQUIRED');
           const a = JSON.parse(data.toString());
           const r = rooms.get(a.code);
-          if (!r || r.ended || ![0, 1].includes(a.role)) throw new Error('INVALID_AUTH');
+          if (!r || r.ended || (!Number.isInteger(a.role) || a.role<0 || a.role>=r.players.length)) throw new Error('INVALID_AUTH');
           const p = r.players[a.role];
           if (!p || !p.token || p.token !== a.token || p.ws || clock() >= p.expires) throw new Error('INVALID_AUTH');
           p.token = ''; p.ws = ws; p.lastSeen = clock(); ws.player = p; ws.room = r;
-          send(ws, { type: 'waiting', role: p.role });
+          if(r.manifest.protocol===GROUP_PROTOCOL){for(const q of r.players)if(q?.ws)send(q.ws,{type:'waiting',role:q.role,players:r.players.length,connected:r.players.filter(x=>x?.ws?.readyState===WebSocket.OPEN).length});}
+          else send(ws,{type:'waiting',role:p.role});
           if (r.players.every(p => p?.ws?.readyState === WebSocket.OPEN)) {
             r.ready = true;
-            for (const q of r.players) send(q.ws, { type: 'ready', role: q.role });
+            for (const q of r.players) send(q.ws, { type: 'ready', role: q.role, players:r.players.length });
           }
           return;
         }
@@ -165,13 +179,17 @@ export function createRelay(options = {}) {
           send(ws, { type: 'pong', nonce: msg.nonce }); return;
         }
         if (!r.ready) throw new Error('NOT_READY');
-        unpack(data, p.seq); ++p.seq;
-        const peer = r.players[1 - p.role]?.ws;
-        if (!peer || peer.readyState !== WebSocket.OPEN) throw new Error('PEER_DISCONNECTED');
-        if (peer.bufferedAmount + data.length > 4 * 1024 * 1024) throw new Error('BACKPRESSURE');
-        peer.send(data, { binary: true });
+        if(r.manifest.protocol===GROUP_PROTOCOL)unpackGroup(data,p.seq,p.role,r.players.length);
+        else unpack(data,p.seq);
+        ++p.seq;
+        const peers=r.players.filter(q=>q.role!==p.role).map(q=>q.ws);
+        for(const peer of peers){
+          if(!peer || peer.readyState!==WebSocket.OPEN)throw Error('PEER_DISCONNECTED');
+          if(peer.bufferedAmount+data.length>4*1024*1024)throw Error('BACKPRESSURE');
+        }
+        for(const peer of peers)peer.send(data,{binary:true});
       } catch (e) {
-        if (ws.room) end(ws.room, e.message === 'BAD_SEQUENCE' ? 'BAD_SEQUENCE' : 'PROTOCOL_ERROR');
+        if (ws.room) end(ws.room, ['BAD_SEQUENCE','PEER_DISCONNECTED','BACKPRESSURE','NOT_READY','RATE_LIMIT'].includes(e.message) ? e.message : 'PROTOCOL_ERROR');
         else { send(ws, { type: 'error', reason: 'AUTH_REJECTED' }); ws.close(4001, 'AUTH_REJECTED'); }
       }
     });

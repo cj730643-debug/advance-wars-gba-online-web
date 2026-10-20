@@ -26,3 +26,6 @@ jobs:
       - run: node -e "require('fs').mkdirSync('logs',{recursive:true})"
       - run: node tests/core-smoke.mjs
       - run: node tests/worker-smoke.mjs
+      - run: node tests/core-group-smoke.mjs
+      - run: node tests/worker-group-smoke.mjs
+      - run: node tests/group-failure-smoke.mjs

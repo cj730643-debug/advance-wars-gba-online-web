@@ -1,6 +1,7 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
 // Browser host adapter; core CPU, serial timing and synchronization are retained.
 #include "bridge.hpp"
+#include "group/group-host.h"
 #include <emscripten.h>
 #include <cstdarg>
 #include <cstdio>
@@ -83,4 +84,22 @@ EMSCRIPTEN_KEEPALIVE double aw_state_sent(){return bridge.stateChecksSent;}
 EMSCRIPTEN_KEEPALIVE double aw_state_received(){return bridge.stateChecksReceived;}
 EMSCRIPTEN_KEEPALIVE int aw_terminal(){return failed||bridge.terminal;}
 EMSCRIPTEN_KEEPALIVE double aw_sample_rate(){return sampleRate;}
+EMSCRIPTEN_KEEPALIVE int aw_group_capture(unsigned role,unsigned count){return loaded&&!bridge.active&&awGroupCapture(role,count);}
+EMSCRIPTEN_KEEPALIVE const uint8_t* aw_group_snapshot_ptr(){return awGroupSnapshotData();}
+EMSCRIPTEN_KEEPALIVE size_t aw_group_snapshot_size(){return awGroupSnapshotSize();}
+EMSCRIPTEN_KEEPALIVE int aw_group_receive_snapshot(unsigned role,const uint8_t*p,size_t n){return awGroupReceiveSnapshot(role,p,n);}
+EMSCRIPTEN_KEEPALIVE int aw_group_install(){return awGroupInstall();}
+EMSCRIPTEN_KEEPALIVE int aw_group_seed(){return awGroupSeed();}
+EMSCRIPTEN_KEEPALIVE int aw_group_author(unsigned keys){return awGroupAuthor(keys);}
+EMSCRIPTEN_KEEPALIVE const uint8_t* aw_group_input_ptr(){return awGroupInputData();}
+EMSCRIPTEN_KEEPALIVE size_t aw_group_input_size(){return awGroupInputSize();}
+EMSCRIPTEN_KEEPALIVE int aw_group_feed_input(unsigned role,const uint8_t*p,size_t n){return awGroupFeedInput(role,p,n);}
+EMSCRIPTEN_KEEPALIVE int aw_group_frame_ready(){return awGroupFrameReady();}
+EMSCRIPTEN_KEEPALIVE int aw_group_run(){if(stopped()||!awGroupRun())return 0;unsigned w=0,h=0;auto*p=awGroupVideo(&w,&h);if(p)video(p,w,h,256*2);int16_t samples[8192*2];auto n=awGroupAudio(samples,8192);if(n)audioJs(samples,n,sampleRate);return 1;}
+EMSCRIPTEN_KEEPALIVE const uint8_t* aw_group_digest(){return awGroupDigest();}
+EMSCRIPTEN_KEEPALIVE void aw_group_commit(){awGroupCommit();}
+EMSCRIPTEN_KEEPALIVE void aw_group_stop(){awGroupStop();}
+EMSCRIPTEN_KEEPALIVE double aw_group_frame(){return awGroupFrame();}
+EMSCRIPTEN_KEEPALIVE unsigned aw_group_probe(unsigned player,unsigned word){return awGroupProbe(player,word);}
+EMSCRIPTEN_KEEPALIVE const char* aw_group_error(){return awGroupError();}
 }

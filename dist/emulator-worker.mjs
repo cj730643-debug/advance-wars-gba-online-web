@@ -1,10 +1,12 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
 import createAwCore from './aw-core.mjs';
 import {createTransport,PROTOCOL} from './transport.mjs';
+import {createGroupTransport,PROTOCOL as GROUP_PROTOCOL} from './group-transport.mjs';
+import {runGroupSession} from './group-session.mjs';
 const PROFILE='aw-browser-profile-1;hle;skip-bios;stable;wan-calibration-10s;digital;no-cheats;no-patches';
 const sleep=n=>new Promise(r=>setTimeout(r,n));
 const sha=async b=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',b)),v=>v.toString(16).padStart(2,'0')).join('');
-let running=false,stopping=false,paused=false,exportRequested=false,transport,core,mode,role='solo',fatal='',frames=0,audioFrames=0,afterReady=0;
+let running=false,stopping=false,paused=false,exportRequested=false,transport,core,mode,role='solo',fatal='',frames=0,audioFrames=0,afterReady=0,groupMetrics=null;
 const emit=(type,data={})=>postMessage({type,...data});
 function fail(reason){if(!fatal&&!stopping){fatal=reason;front.terminal=true;emit('error',{reason});}}
 const front={keys:0,terminal:false,incoming:[],audioEnabled:true,
@@ -13,7 +15,7 @@ const front={keys:0,terminal:false,incoming:[],audioEnabled:true,
  audio(bytes,rate){audioFrames+=bytes.length/2;if(front.audioEnabled)postMessage({type:'audio',buffer:bytes.buffer,rate},[bytes.buffer]);}};
 function battery(){if(!core)return;const n=core._aw_save_size(),p=core._aw_save_data();if(n>0&&n<=1024*1024&&p){const bytes=core.HEAPU8.slice(p,p+n);postMessage({type:'save',role,buffer:bytes.buffer},[bytes.buffer]);}}
 function importBattery(saves){const b=saves?.[role];if(!b)return;const bytes=new Uint8Array(b);const p=core._malloc(bytes.length);try{core.HEAPU8.set(bytes,p);if(!core._aw_import_save(p,bytes.length))throw Error('SAVE_SIZE_MISMATCH');}finally{core._free(p);}}
-function metrics(){emit('metrics',{frames,audioFrames,afterReady,ready:!!core?!!core._aw_ready():false,stateSent:core?core._aw_state_sent():0,stateReceived:core?core._aw_state_received():0});}
+function metrics(extra={}){if(extra.players)groupMetrics=extra;emit('metrics',{frames,audioFrames,afterReady,ready:!!core?!!core._aw_ready():false,stateSent:core?core._aw_state_sent():0,stateReceived:core?core._aw_state_received():0,...groupMetrics,...extra});}
 async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
  emit('state',{state:'loading'});const rom=new Uint8Array(msg.rom);if(rom.length<192||rom.length>32*1024*1024||rom[0xb2]!==0x96)throw Error('INVALID_ROM');
  const response=await fetch(new URL('./aw-core.wasm',import.meta.url));if(!response.ok)throw Error('CORE_DOWNLOAD_FAILED');const wasm=new Uint8Array(await response.arrayBuffer());
@@ -22,6 +24,12 @@ async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
  core=await createAwCore({wasmBinary:wasm,frontend:front,print:()=>{},printErr:text=>emit('log',{text:String(text).slice(0,2000)}),onAbort:()=>fail('CORE_ABORT')});
  const p=core._malloc(rom.length);try{core.HEAPU8.set(rom,p);if(!await core.ccall('aw_load','number',['number','number'],[p,rom.length],{async:true}))throw Error('CORE_LOAD_FAILED');}finally{core._free(p);}
  if(stopping)return;
+ if(mode!=='solo'&&msg.players>=3){
+  if(![3,4].includes(msg.players))throw Error('GROUP_INVALID_ROLE');
+  transport=await createGroupTransport({origin:msg.relay,host:mode==='host',code:msg.code,manifest:{game:msg.game,players:msg.players,protocol:GROUP_PROTOCOL,coreProtocol:'mgba-gba-link-group-1',rom:romHash,core:coreHash,config:await sha(new TextEncoder().encode(PROFILE+';group-v1;delay8;players='+msg.players))},front,onRoom:async info=>{role=`p${info.role}`;importBattery(msg.saves);emit('room',{...info,players:msg.players});},onRoster:info=>emit('roster',info),onState:state=>emit('state',{state}),onFailure:fail,onRtt:ms=>emit('rtt',{ms})});
+  await transport.ready;if(stopping)return;emit('state',{state:'synchronizing'});
+  await runGroupSession({core,transport,front,players:msg.players,role:transport.role,emit,metrics,stopped:()=>stopping});return;
+ }
  if(mode==='solo'){importBattery(msg.saves);emit('state',{state:'playing_solo'});}else{
   transport=await createTransport({origin:msg.relay,host:mode==='host',code:msg.code,manifest:{game:msg.game,protocol:PROTOCOL,coreProtocol:'mgba-gba-link-replicated-v2',rom:romHash,core:coreHash,config:configHash},front,
    onRoom:async info=>{role=info.role===0?'p0':'p1';importBattery(msg.saves);emit('room',info);},onState:state=>emit('state',{state}),onFailure:fail,onRtt:ms=>emit('rtt',{ms})});

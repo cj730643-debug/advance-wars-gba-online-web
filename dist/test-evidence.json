@@ -1,4 +1,282 @@
 {
+  "group-failure-public-wss": {
+    "testedAt": "2026-10-20T01:07:02.636Z",
+    "relay": "https://aw-relay-production.up.railway.app",
+    "scope": "Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified",
+    "cases": [
+      {
+        "players": 4,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "GROUP_STATE_MISMATCH"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 60,
+              "audioFrames": 32466,
+              "afterReady": 60,
+              "ready": true,
+              "stateSent": 1,
+              "stateReceived": 3,
+              "players": 4
+            },
+            "video": 60,
+            "audio": 32466,
+            "saveBytes": 131072,
+            "complete": false,
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "GROUP_STATE_MISMATCH"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 60,
+              "audioFrames": 32450,
+              "afterReady": 60,
+              "ready": true,
+              "stateSent": 1,
+              "stateReceived": 3,
+              "players": 4
+            },
+            "video": 60,
+            "audio": 32450,
+            "saveBytes": 131072,
+            "complete": false,
+            "saveRole": "p1"
+          },
+          {
+            "mode": "join",
+            "role": 2,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "GROUP_STATE_MISMATCH"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 60,
+              "audioFrames": 32450,
+              "afterReady": 60,
+              "ready": true,
+              "stateSent": 1,
+              "stateReceived": 3,
+              "players": 4
+            },
+            "video": 60,
+            "audio": 32450,
+            "saveBytes": 131072,
+            "complete": false,
+            "saveRole": "p2"
+          },
+          {
+            "mode": "join",
+            "role": 3,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 60,
+              "audioFrames": 32450,
+              "afterReady": 60,
+              "ready": true,
+              "stateSent": 1,
+              "stateReceived": 3,
+              "players": 4
+            },
+            "video": 60,
+            "audio": 32450,
+            "saveBytes": 131072,
+            "complete": false,
+            "saveRole": "p3"
+          }
+        ],
+        "safeStateMismatch": true
+      }
+    ]
+  },
+  "group-failure-smoke": {
+    "testedAt": "2026-10-20T01:02:14.440Z",
+    "relay": "http://127.0.0.1:38907",
+    "scope": "Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified",
+    "cases": [
+      {
+        "players": 4,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "GROUP_STATE_MISMATCH"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 60,
+              "audioFrames": 32466,
+              "afterReady": 60,
+              "ready": true,
+              "stateSent": 1,
+              "stateReceived": 3,
+              "players": 4
+            },
+            "video": 60,
+            "audio": 32466,
+            "saveBytes": 131072,
+            "complete": false,
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 60,
+              "audioFrames": 32450,
+              "afterReady": 60,
+              "ready": true,
+              "stateSent": 1,
+              "stateReceived": 3,
+              "players": 4
+            },
+            "video": 60,
+            "audio": 32450,
+            "saveBytes": 131072,
+            "complete": false,
+            "saveRole": "p1"
+          },
+          {
+            "mode": "join",
+            "role": 2,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 60,
+              "audioFrames": 32450,
+              "afterReady": 60,
+              "ready": true,
+              "stateSent": 1,
+              "stateReceived": 3,
+              "players": 4
+            },
+            "video": 60,
+            "audio": 32450,
+            "saveBytes": 131072,
+            "complete": false,
+            "saveRole": "p2"
+          },
+          {
+            "mode": "join",
+            "role": 3,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 60,
+              "audioFrames": 32450,
+              "afterReady": 60,
+              "ready": true,
+              "stateSent": 1,
+              "stateReceived": 3,
+              "players": 4
+            },
+            "video": 60,
+            "audio": 32450,
+            "saveBytes": 131072,
+            "complete": false,
+            "saveRole": "p3"
+          }
+        ],
+        "safeStateMismatch": true
+      }
+    ]
+  },
   "vercel-public-http": {
     "testedAt": "2026-10-20T00:36:10Z",
     "url": "https://advance-wars-gba-online.vercel.app",
@@ -44,8 +322,94 @@
     "preflight": "passed",
     "durationSeconds": 11.3
   },
+  "core-group-smoke": {
+    "testedAt": "2026-10-20T01:05:12.564Z",
+    "wasmSHA256": "ef70129f803e309a360e992e4edd32b040fd9bc4964f57d57ea9e2c43468e66a",
+    "cases": [
+      {
+        "players": 3,
+        "frames": 360,
+        "stateCheckpoints": 7,
+        "videoFrames": 1080,
+        "audioFrames": 591128,
+        "fixtureSHA256": "ad263fb206c8a19b75db52f037c1b51e1968d0bc603a501dda53fc460af46c8d",
+        "logicalPlayers": [
+          {
+            "id": 0,
+            "participants": 3,
+            "transfers": 173,
+            "baudMask": 15,
+            "errors": 0,
+            "seenKeys": 1
+          },
+          {
+            "id": 1,
+            "participants": 3,
+            "transfers": 173,
+            "baudMask": 15,
+            "errors": 0,
+            "seenKeys": 2
+          },
+          {
+            "id": 2,
+            "participants": 3,
+            "transfers": 173,
+            "baudMask": 15,
+            "errors": 0,
+            "seenKeys": 4
+          }
+        ],
+        "saveIsolation": true,
+        "inputValidation": true
+      },
+      {
+        "players": 4,
+        "frames": 360,
+        "stateCheckpoints": 7,
+        "videoFrames": 1440,
+        "audioFrames": 788168,
+        "fixtureSHA256": "adda943faa13e0995d719b022b4e857daf9b7853b06e4ac03ec25a65e2dddbfb",
+        "logicalPlayers": [
+          {
+            "id": 0,
+            "participants": 4,
+            "transfers": 173,
+            "baudMask": 15,
+            "errors": 0,
+            "seenKeys": 1
+          },
+          {
+            "id": 1,
+            "participants": 4,
+            "transfers": 173,
+            "baudMask": 15,
+            "errors": 0,
+            "seenKeys": 2
+          },
+          {
+            "id": 2,
+            "participants": 4,
+            "transfers": 173,
+            "baudMask": 15,
+            "errors": 0,
+            "seenKeys": 4
+          },
+          {
+            "id": 3,
+            "participants": 4,
+            "transfers": 173,
+            "baudMask": 15,
+            "errors": 0,
+            "seenKeys": 8
+          }
+        ],
+        "saveIsolation": true,
+        "inputValidation": true
+      }
+    ]
+  },
   "worker-public-wss": {
-    "testedAt": "2026-10-20T00:18:05.988Z",
+    "testedAt": "2026-10-20T01:04:39.762Z",
     "relay": "https://aw-relay-production.up.railway.app",
     "scope": "Actual browser Worker source in Node Worker, CC0 diagnostic ROM; no browser UI or commercial game claim",
     "solo": {
@@ -84,15 +448,15 @@
         "errors": [],
         "metrics": {
           "type": "metrics",
-          "frames": 323,
-          "audioFrames": 87328,
-          "afterReady": 160,
+          "frames": 295,
+          "audioFrames": 71968,
+          "afterReady": 132,
           "ready": true,
           "stateSent": 2,
           "stateReceived": 2
         },
-        "video": 323,
-        "audio": 87328,
+        "video": 295,
+        "audio": 71968,
         "saveBytes": 131072,
         "exportWhilePaused": false,
         "complete": true
@@ -110,18 +474,252 @@
         "errors": [],
         "metrics": {
           "type": "metrics",
-          "frames": 323,
-          "audioFrames": 87862,
-          "afterReady": 161,
+          "frames": 299,
+          "audioFrames": 73048,
+          "afterReady": 134,
           "ready": true,
           "stateSent": 2,
           "stateReceived": 2
         },
-        "video": 323,
-        "audio": 87862,
+        "video": 299,
+        "audio": 73048,
         "saveBytes": 131072,
         "exportWhilePaused": false,
         "complete": true
+      }
+    ]
+  },
+  "worker-group-public-wss": {
+    "testedAt": "2026-10-20T01:07:40.378Z",
+    "relay": "https://aw-relay-production.up.railway.app",
+    "scope": "Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified",
+    "cases": [
+      {
+        "players": 3,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [],
+            "metrics": {
+              "type": "metrics",
+              "frames": 218,
+              "audioFrames": 119150,
+              "afterReady": 218,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 8,
+              "players": 3
+            },
+            "video": 218,
+            "audio": 119150,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 221,
+              "audioFrames": 120778,
+              "afterReady": 221,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 8,
+              "players": 3
+            },
+            "video": 221,
+            "audio": 120778,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p1"
+          },
+          {
+            "mode": "join",
+            "role": 2,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 217,
+              "audioFrames": 118584,
+              "afterReady": 217,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 8,
+              "players": 3
+            },
+            "video": 217,
+            "audio": 118584,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p2"
+          }
+        ],
+        "safeDisconnect": true
+      },
+      {
+        "players": 4,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [],
+            "metrics": {
+              "type": "metrics",
+              "frames": 239,
+              "audioFrames": 130670,
+              "afterReady": 239,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 12,
+              "players": 4
+            },
+            "video": 239,
+            "audio": 130670,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 240,
+              "audioFrames": 131202,
+              "afterReady": 240,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 12,
+              "players": 4
+            },
+            "video": 240,
+            "audio": 131202,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p1"
+          },
+          {
+            "mode": "join",
+            "role": 2,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 240,
+              "audioFrames": 131202,
+              "afterReady": 240,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 12,
+              "players": 4
+            },
+            "video": 240,
+            "audio": 131202,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p2"
+          },
+          {
+            "mode": "join",
+            "role": 3,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 240,
+              "audioFrames": 131202,
+              "afterReady": 240,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 12,
+              "players": 4
+            },
+            "video": 240,
+            "audio": 131202,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p3"
+          }
+        ],
+        "safeDisconnect": true
       }
     ]
   },
@@ -153,8 +751,8 @@
     "endedReason": "PEER_DISCONNECTED"
   },
   "worker-smoke": {
-    "testedAt": "2026-10-20T00:25:17.963Z",
-    "relay": "http://127.0.0.1:43613",
+    "testedAt": "2026-10-20T01:02:15.944Z",
+    "relay": "http://127.0.0.1:39523",
     "scope": "Actual browser Worker source in Node Worker, CC0 diagnostic ROM; no browser UI or commercial game claim",
     "solo": {
       "mode": "solo",
@@ -193,14 +791,14 @@
         "metrics": {
           "type": "metrics",
           "frames": 181,
-          "audioFrames": 78550,
-          "afterReady": 144,
+          "audioFrames": 73064,
+          "afterReady": 134,
           "ready": true,
           "stateSent": 2,
           "stateReceived": 2
         },
         "video": 181,
-        "audio": 78550,
+        "audio": 73064,
         "saveBytes": 131072,
         "exportWhilePaused": false,
         "complete": true
@@ -219,14 +817,14 @@
         "metrics": {
           "type": "metrics",
           "frames": 181,
-          "audioFrames": 77986,
-          "afterReady": 143,
+          "audioFrames": 73048,
+          "afterReady": 134,
           "ready": true,
           "stateSent": 2,
           "stateReceived": 2
         },
         "video": 181,
-        "audio": 77986,
+        "audio": 73048,
         "saveBytes": 131072,
         "exportWhilePaused": false,
         "complete": true
@@ -257,12 +855,246 @@
     }
   },
   "core-smoke": {
-    "testedAt": "2026-10-20T00:25:13.494Z",
+    "testedAt": "2026-10-20T01:01:40.547Z",
     "fixture": "CC0 gba-link-continuous",
-    "wasmSHA256": "199c6e8f0ee1fb107e875b3f6f46c67e904074adaaa6b2df000cbf43cd92aac6",
+    "wasmSHA256": "ef70129f803e309a360e992e4edd32b040fd9bc4964f57d57ea9e2c43468e66a",
     "frames": 180,
     "audioFrames": 98284,
     "inputReads": 2160,
     "saveBytes": 131072
+  },
+  "worker-group-smoke": {
+    "testedAt": "2026-10-20T01:07:34.316Z",
+    "relay": "http://127.0.0.1:33301",
+    "scope": "Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified",
+    "cases": [
+      {
+        "players": 3,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [],
+            "metrics": {
+              "type": "metrics",
+              "frames": 233,
+              "audioFrames": 127378,
+              "afterReady": 233,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 8,
+              "players": 3
+            },
+            "video": 233,
+            "audio": 127378,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 233,
+              "audioFrames": 127362,
+              "afterReady": 233,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 8,
+              "players": 3
+            },
+            "video": 233,
+            "audio": 127362,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p1"
+          },
+          {
+            "mode": "join",
+            "role": 2,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 234,
+              "audioFrames": 127910,
+              "afterReady": 234,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 8,
+              "players": 3
+            },
+            "video": 234,
+            "audio": 127910,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p2"
+          }
+        ],
+        "safeDisconnect": true
+      },
+      {
+        "players": 4,
+        "results": [
+          {
+            "mode": "host",
+            "role": 0,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [],
+            "metrics": {
+              "type": "metrics",
+              "frames": 233,
+              "audioFrames": 127378,
+              "afterReady": 233,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 12,
+              "players": 4
+            },
+            "video": 233,
+            "audio": 127378,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p0"
+          },
+          {
+            "mode": "join",
+            "role": 1,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 233,
+              "audioFrames": 127362,
+              "afterReady": 233,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 12,
+              "players": 4
+            },
+            "video": 233,
+            "audio": 127362,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p1"
+          },
+          {
+            "mode": "join",
+            "role": 2,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 233,
+              "audioFrames": 127362,
+              "afterReady": 233,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 12,
+              "players": 4
+            },
+            "video": 233,
+            "audio": 127362,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p2"
+          },
+          {
+            "mode": "join",
+            "role": 3,
+            "states": [
+              "loading",
+              "auth_sent",
+              "waiting",
+              "connected",
+              "synchronizing",
+              "playing_online"
+            ],
+            "errors": [
+              "PEER_DISCONNECTED"
+            ],
+            "metrics": {
+              "type": "metrics",
+              "frames": 233,
+              "audioFrames": 127362,
+              "afterReady": 233,
+              "ready": true,
+              "stateSent": 4,
+              "stateReceived": 12,
+              "players": 4
+            },
+            "video": 233,
+            "audio": 127362,
+            "saveBytes": 131072,
+            "complete": true,
+            "saveRole": "p3"
+          }
+        ],
+        "safeDisconnect": true
+      }
+    ]
   }
 }
