@@ -30,11 +30,11 @@ function handle(m,w,context){if(worker!==w)return;
  else if(m.type==='rtt')$('latency').textContent=`${m.ms} ms`;
  else if(m.type==='build'){log(`build ${JSON.stringify(m)}`);if(m.version!==BUILD_ID){showError('CONFIG_MISMATCH');w.postMessage({type:'stop'});}}
  else if(m.type==='log')log(m.text);
- else if(m.type==='metrics')log(`metrics ${JSON.stringify(m)}`);
+ else if(m.type==='metrics'){log(`metrics ${JSON.stringify(m)}`);if(Number.isFinite(m.frameRate))$('performance').textContent=`${m.frameRate.toFixed(1)} FPS · 模拟 ${m.coreMsPerFrame.toFixed(1)} ms/帧 · 等包 ${m.inputWaitMsPerFrame.toFixed(1)} ms/帧`;}
  else if(m.type==='error')showError(m.reason);
  else if(m.type==='stopped')finish(w);
 }
-async function start(nextMode){if(active||!file)return;const mine=++generation;mode=nextMode;active=true;paused=false;exportPending=false;$('error').hidden=true;$('invite-box').hidden=true;refresh();$('game-status').textContent='正在准备游戏…';
+async function start(nextMode){if(active||!file)return;const mine=++generation;mode=nextMode;active=true;paused=false;exportPending=false;$('error').hidden=true;$('invite-box').hidden=true;refresh();$('game-status').textContent='正在准备游戏…';$('performance').textContent='正在测量运行速度…';
  try{if(nextMode!=='solo')relayOrigin($('relay').value);await audioStart().catch(()=>log('AUDIO_UNAVAILABLE'));const rom=await file.arrayBuffer();const hashValue=romHash;const saves={};for(const slot of ['solo','p0','p1','p2','p3']){const b=await getSave(hashValue,slot);if(b)saves[slot]=b.slice(0);}if(mine!==generation)return;currentRole=nextMode==='solo'?'solo':nextMode==='host'?'p0':'p1';$('save-slot').value=currentRole;saveContext={hash:hashValue,game:$('game-version').value};const w=new Worker(new URL('./emulator-worker.mjs',import.meta.url),{type:'module'});worker=w;w.onmessage=({data})=>handle(data,w,saveContext);w.onerror=e=>{showError('WORKER_ERROR');log(e.message);finish(w);};w.postMessage({type:'start',mode:nextMode,players:Number($('player-count').value),game:$('game-version').value,rom,saves,relay:$('relay').value,code:$('join-code').value},[rom]);w.postMessage({type:'audio',enabled:sound});log(`start build=${BUILD_ID} mode=${nextMode} players=${$('player-count').value} game=${$('game-version').value} romSHA256=${hashValue}`);
  }catch(e){if(mine!==generation)return;showError(e.message);if(worker)finish(worker);else{active=false;refresh();$('game-status').textContent='启动失败，请检查提示。';}}
 }

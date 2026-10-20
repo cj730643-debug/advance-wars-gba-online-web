@@ -211,6 +211,10 @@ enum AWReplicatedGroupResult AWReplicatedGroupSetInputs(struct AWReplicatedGroup
  pair->inputFrame=frame;memcpy(pair->inputs,inputs,pair->count*sizeof(uint16_t));pair->inputsReady=true;return AW_REPLICATED_GROUP_OK;
 }
 
+/* Optional per-frame forensic tracing serializes and hashes every logical GBA.
+ * Runtime consistency is independently checked by StateDigest every 60 frames.
+ * Keep this expensive trace out of the normal browser frame loop. */
+#ifdef AW_GROUP_FRAME_TRACE
 static void _recordTrace(
 	struct AWReplicatedGroup* pair, unsigned playerId) {
 	struct GBASerializedState* state = calloc(1, sizeof(*state));
@@ -233,6 +237,7 @@ static void _recordTrace(
 	sha256Finalize(pair->stateTrace[playerId], &context);
 	free(state);
 }
+#endif
 
 static void _updateSaveGeneration(
 		struct AWReplicatedGroupPlayer* player) {
@@ -303,7 +308,12 @@ enum AWReplicatedGroupResult AWReplicatedGroupRunFrame(
 			}
 			++pair->frameNumber;
 			pair->inputsReady = false;
-			for(unsigned i=0;i<pair->count;++i){_updateSaveGeneration(&pair->players[i]);_recordTrace(pair,i);}
+			for(unsigned i=0;i<pair->count;++i){
+				_updateSaveGeneration(&pair->players[i]);
+#ifdef AW_GROUP_FRAME_TRACE
+				_recordTrace(pair,i);
+#endif
+			}
 			return AW_REPLICATED_GROUP_OK;
 		}
 		bool ran = false;

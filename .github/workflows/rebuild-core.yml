@@ -1,4 +1,4 @@
-name: Rebuild calibrated WebAssembly core
+name: Rebuild verified WebAssembly core
 on:
   push:
     branches: [main]
@@ -23,6 +23,10 @@ jobs:
           version: 3.1.74
       - run: npm ci --prefix relay --ignore-scripts --no-audit --no-fund
       - run: node scripts/vercel-build.mjs
+      - run: mkdir -p logs
+      - run: node tests/group-performance.mjs
+        env:
+          PERF_LABEL: before
       - name: Extract the exact bundled mGBA source
         run: |
           python - <<'PY'
@@ -48,6 +52,9 @@ jobs:
       - run: node tests/core-group-smoke.mjs
       - run: node tests/worker-group-smoke.mjs
       - run: node tests/group-failure-smoke.mjs
+      - run: node tests/group-performance.mjs
+        env:
+          PERF_LABEL: after
       - name: Record rebuilt core evidence
         run: |
           python - <<'PY'
@@ -60,12 +67,12 @@ jobs:
           if count != 1:
               raise SystemExit('Could not update the unique WASM SHA-256 in TEST_REPORT.txt')
           text += (
-              '\n\n2026-10-20 网络校准超时修复：\n'
-              '- 根据用户诊断日志，协议 V2 在房间连接后因 reason=29（calibration timeout）停止，尚未进入 READY。\n'
-              '- 将底层协议 V2 的绝对校准/接受期限从 3 秒延长到 10 秒。\n'
-              '- 校准样本上限从 1 秒提高到 10 秒，并将校准策略版本提升至 2，以容忍短暂后台节流且拒绝混用旧核心。\n'
-              '- 本次重建后重新运行核心、Worker 双人/多人及失败注入测试；仅以 CI 实际结果为准。\n'
-              '- 此修复不证明商业汉化 ROM 的完整对局已通过实机验收。\n'
+              '\n\n2026-10-20 联机性能修复：\n'
+              '- 每帧诊断 trace 改为可选编译项，线上关闭；每 60 帧全员状态共识仍保留。\n'
+              '- 后台收包改为到包立即唤醒，取消人为 250 ms 等待；界面新增 FPS、模拟和等包耗时。\n'
+              '- 同一 CI Runner 用真实 WASM 对修改前后各运行 360 帧，结果见 test-evidence.json 的 group-performance-before/after。\n'
+              '- 重建后核心、双人/多人 Worker 与错误状态注入测试通过后才发布核心产物。\n'
+              '- 不代表商业 ROM 完整对局或所有设备达到满帧。\n'
           )
           report.write_text(text, encoding='utf-8')
           print('Rebuilt WASM SHA-256:', digest)
@@ -81,6 +88,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No generated artifact changes to publish.'
           else
-            git commit -m '[core-artifact] Rebuilt WASM with WAN calibration timeout'
+            git commit -m '[core-artifact] Remove per-frame forensic hashing; preserve checkpoint consensus'
             git push
           fi

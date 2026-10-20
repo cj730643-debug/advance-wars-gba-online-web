@@ -1,6 +1,7 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
 import createAwCore from './aw-core.mjs';
 import {BUILD_ID} from './version.mjs';
+import {attachPacketWait} from './packet-wait.mjs';
 import {createGroupTransport,PROTOCOL as GROUP_PROTOCOL} from './group-transport.mjs';
 import {runGroupSession} from './group-session.mjs';
 const PROFILE='aw-browser-profile-2;hle;skip-bios;group-lockstep-2to4;delay8;digital;no-cheats;no-patches';
@@ -12,7 +13,7 @@ function createIncomingQueue(){
  const queue=[];queue.bytes=0;
  const size=item=>item?.byteLength??item?.bytes??item?.payload?.byteLength??0;
  const push=queue.push.bind(queue),shift=queue.shift.bind(queue),splice=queue.splice.bind(queue);
- queue.push=(...items)=>{for(const item of items)queue.bytes+=size(item);return push(...items);};
+ queue.push=(...items)=>{for(const item of items)queue.bytes+=size(item);const n=push(...items);queue.wake?.();return n;};
  queue.shift=()=>{const item=shift();if(item)queue.bytes=Math.max(0,queue.bytes-size(item));return item;};
  queue.splice=function(start,deleteCount,...items){
   const args=arguments.length===1?[start]:[start,deleteCount,...items];
@@ -22,7 +23,7 @@ function createIncomingQueue(){
   for(const item of added)queue.bytes+=size(item);
   return removed;
  };
- return queue;
+ return attachPacketWait(queue);
 }
 function fail(reason){if(!fatal&&!stopping){fatal=reason;front.terminal=true;emit('error',{reason});}}
 let pageHidden=false;
@@ -63,4 +64,4 @@ async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
  }catch(e){if(!stopping)fail(e.message||'UNKNOWN_ERROR');}
  finally{front.keys=0;if(core){await core.ccall('aw_stop',null,[],[],{async:true});battery();metrics();}transport?.close();emit('stopped',{reason:fatal||'SESSION_STOPPED'});}
 }
-globalThis.onmessage=({data:m})=>{switch(m.type){case'start':void boot(m);break;case'keys':front.keys=m.keys&0xffff;break;case'audio':front.audioEnabled=!!m.enabled;break;case'pause':paused=!!m.paused;front.keys=0;break;case'visibility':pageHidden=!!m.hidden;break;case'export':exportRequested=true;break;case'stop':stopping=true;front.terminal=true;front.keys=0;transport?.close();break;}};
+globalThis.onmessage=({data:m})=>{switch(m.type){case'start':void boot(m);break;case'keys':front.keys=m.keys&0xffff;break;case'audio':front.audioEnabled=!!m.enabled;break;case'pause':paused=!!m.paused;front.keys=0;break;case'visibility':pageHidden=!!m.hidden;break;case'export':exportRequested=true;break;case'stop':stopping=true;front.terminal=true;front.keys=0;front.incoming.wake?.();transport?.close();break;}};

@@ -1,10 +1,10 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
-// Separate group protocol; the established two-player netpacket path is retained.
+// One deterministic 2–4-player path, with packet-driven receive wakeups.
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const MAX_SNAPSHOT=2*1024*1024,CHUNK=16384;
 const MAX_SYNC_WAIT_MS=300_000;
 export async function runGroupSession({core:c,transport,front,players,role,emit,metrics,stopped,isBackground=()=>false}){
- let installed=false,checks=0,lastMetrics=performance.now();
+ let installed=false,checks=0,lastMetrics=performance.now(),windowFrame=0,runMs=0,inputWaitMs=0,checkpointMs=0,lastPerformance={};
  const snapshots=Array(players).fill(null),pending=[],states=new Map();
  const check=(name,...args)=>{if(c[`_aw_group_${name}`](...args)!==1)throw Error(c.UTF8ToString(c._aw_group_error()));};
  const apply=(bytes,name,...args)=>{const p=c._malloc(bytes.length);if(!p)throw Error('GROUP_ALLOCATION_FAILED');try{c.HEAPU8.set(bytes,p);check(name,...args,p,bytes.length);}finally{c._free(p);}};
@@ -37,7 +37,7 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
    }else throw Error('BAD_PACKET');
   }
  }
- async function until(test,timeout){const start=performance.now();for(;;){drain();if(test())return;if(performance.now()-start>=timeout)throw Error(installed?'GROUP_SYNC_TIMEOUT':'GROUP_HANDSHAKE_TIMEOUT');await sleep(isBackground()?250:2);}}
+ async function until(test,timeout){const start=performance.now();for(;;){drain();if(test())return;if(performance.now()-start>=timeout)throw Error(installed?'GROUP_SYNC_TIMEOUT':'GROUP_HANDSHAKE_TIMEOUT');await front.incoming.wait(1000);}}
  async function consensus(){
   const frame=c._aw_group_frame(),digest=hash(),packet=new Uint8Array(40);new DataView(packet.buffer).setBigUint64(0,BigInt(frame));packet.set(digest,8);
   let hashes=states.get(frame);if(!hashes){hashes=Array(players).fill(null);states.set(frame,hashes);}hashes[role]=digest;send(3,packet);
@@ -51,12 +51,12 @@ export async function runGroupSession({core:c,transport,front,players,role,emit,
   await until(()=>snapshots.every(s=>s?.done),MAX_SYNC_WAIT_MS);check('install');installed=true;
   for(const msg of pending)apply(msg.payload,'feed_input',msg.role);pending.length=0;
   check('seed');send(2,input());await consensus();emit('state',{state:'playing_online'});
-  let next=performance.now();
+  let next=performance.now();lastMetrics=next;windowFrame=c._aw_group_frame();
   while(!stopped()&&!front.terminal){
-   check('author',front.keys);send(2,input());await until(()=>!!c._aw_group_frame_ready(),MAX_SYNC_WAIT_MS);check('run');
-   if(c._aw_group_frame()%60===0)await consensus();
-   const now=performance.now();if(now-lastMetrics>=1000){metrics({ready:true,afterReady:c._aw_group_frame(),stateSent:checks,stateReceived:checks*(players-1),players});lastMetrics=now;}
+   check('author',front.keys);send(2,input());let t=performance.now();await until(()=>!!c._aw_group_frame_ready(),MAX_SYNC_WAIT_MS);inputWaitMs+=performance.now()-t;t=performance.now();check('run');runMs+=performance.now()-t;
+   if(c._aw_group_frame()%60===0){t=performance.now();await consensus();checkpointMs+=performance.now()-t;}
+   const now=performance.now();if(now-lastMetrics>=1000){const n=c._aw_group_frame()-windowFrame;lastPerformance={frameRate:Math.round(n*10000/(now-lastMetrics))/10,coreMsPerFrame:Math.round(runMs*100/n)/100,inputWaitMsPerFrame:Math.round(inputWaitMs*100/n)/100,checkpointMs:Math.round(checkpointMs),background:isBackground()};metrics({ready:true,afterReady:c._aw_group_frame(),stateSent:checks,stateReceived:checks*(players-1),players,...lastPerformance});lastMetrics=now;windowFrame=c._aw_group_frame();runMs=inputWaitMs=checkpointMs=0;}
    next+=1000/59.7275;if(next<now-100)next=now;await sleep(Math.max(0,next-now));drain();
   }
- }finally{c._aw_group_stop();metrics({ready:installed,afterReady:c._aw_group_frame(),stateSent:checks,stateReceived:checks*(players-1),players});}
+ }finally{c._aw_group_stop();metrics({ready:installed,afterReady:c._aw_group_frame(),stateSent:checks,stateReceived:checks*(players-1),players,...lastPerformance});}
 }
