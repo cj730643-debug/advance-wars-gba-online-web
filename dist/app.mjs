@@ -1,9 +1,10 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
 import {relayOrigin} from './transport.mjs';
 import {BUILD_ID} from './version.mjs';
+import {schedulePaint} from './paint-scheduler.mjs';
 const $=id=>document.getElementById(id),canvas=$('game-canvas'),ctx=canvas.getContext('2d',{alpha:false});
 let file,romHash='',worker,active=false,mode='',currentRole='solo',keys=0,paused=false,sound=true,audio,nextAudio=0,generation=0,exportPending=false,dbPromise,writeQueue=Promise.resolve();
-let audioNode,audioSetup,audioStats={},pendingVideo,paintRequest=0,painted=0,paintMs=0,lastPaintReport=0;
+let audioNode,audioSetup,audioStats={},pendingVideo,cancelPaint=null,painted=0,paintMs=0,lastPaintReport=0;
 const cache=new Map(),lines=[];let saveContext,quickState=null,romSelection=0;
 const stateText={loading:'正在加载模拟器…',auth_sent:'正在认证连接…',waiting:'等待房间玩家到齐…',connected:'全员已连接，准备同步…',synchronizing:'正在交换快照并核对游戏状态…',playing_solo:'单人游戏中 · 按 Enter 开始',playing_online:'联机游戏中 · 同步已完成'};
 const errors={INVALID_ROM:'请选择有效的 .gba 游戏文件（最大 32 MB）。',INVALID_CODE:'请输入有效的 8 位房间码。',ROM_MISMATCH:'所有玩家的游戏文件不同。请使用字节完全相同的 ROM。',CONFIG_MISMATCH:'人数、游戏版本或模拟器配置不同。所有玩家刷新同一网址后重建房间。',PROTOCOL_MISMATCH:'协议版本不同。请所有玩家刷新同一网址。',ROOM_FULL:'这个房间已满员。',ROOM_EXPIRED:'房间已过期，请重新创建。',TOKEN_EXPIRED:'认证已过期，请重新创建或加入房间。',PEER_DISCONNECTED:'对手已断开连接，本次联机已结束。',HEARTBEAT_TIMEOUT:'网络连接超时，本次联机已结束。',SERVER_SHUTDOWN:'中继服务已重启，本次联机已结束。',TRANSPORT_ERROR:'无法连接中继服务，请检查网络和 Relay 地址。',RELAY_HTTP_UNREACHABLE:'无法访问房间服务，请检查网络、Relay 地址及跨域设置。',RELAY_HTTP_TIMEOUT:'房间服务响应超时，请稍后重试。',SAVE_SIZE_MISMATCH:'存档大小与此游戏不匹配。请选择正确的电池存档。',CORE_CALIBRATION_TIMEOUT:'所有玩家网络校准超时，已停止游戏。请检查网络后重建房间。',CORE_SYNC_FAILURE:'联机模拟器报告同步错误，对局已停止。可下载诊断日志。',CORE_SESSION_ENDED:'模拟器核心已停止运行，请下载诊断日志查看最后的核心日志。',CORE_LINK_FAILED:'模拟器联机初始化失败，游戏已停止。',BACKPRESSURE:'网络发送积压，已停止本次联机。',ORIGIN_REJECTED:'Relay 未允许当前网页地址。请在服务端配置允许的网页来源。',GROUP_STATE_MISMATCH:'全员模拟状态不一致，已停止对局。存档保留到上次一致性检查。',GROUP_SYNC_TIMEOUT:'有玩家同步超时，已停止对局。请检查网络并重建房间。',GROUP_HANDSHAKE_TIMEOUT:'多人初始同步超时，请检查网络后重建房间。',GROUP_INPUT_REJECTED:'收到不兼容或冲突的玩家输入，已停止对局。',GROUP_INVALID_SNAPSHOT:'初始快照无效，已停止对局。',SNAPSHOT_CORE_UNAVAILABLE:'即时存档核心正在更新，请稍后刷新。已保留原存档。',SNAPSHOT_LOAD_FAILED:'即时存档读取失败，已保留原文件。可从游戏内存档启动。',SESSION_STOPPED:'游戏已结束。'};
@@ -42,23 +43,25 @@ async function audioStart(){
 function playAudio(buffer,rate){if(!sound||!audio||audio.state!=='running')return;if(audioNode){audioNode.port.postMessage({buffer,rate},[buffer]);return;}const p=new Int16Array(buffer),n=p.length/2;if(!n||n>8192||rate<8000||rate>192000)return;if(nextAudio>audio.currentTime+.25)return;const b=audio.createBuffer(2,n,rate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=p[i*2+c]/32768;}const src=audio.createBufferSource();src.buffer=b;src.connect(audio.destination);nextAudio=Math.max(nextAudio,audio.currentTime+.015);src.start(nextAudio);nextAudio+=n/rate;}
 function queueVideo(m,w){
  if(m.w>512||m.h>512||m.buffer.byteLength!==m.w*m.h*4){w.postMessage({type:'video-ack'});return;}
- pendingVideo={m,w};if(paintRequest)return;
- paintRequest=requestAnimationFrame(()=>{paintRequest=0;const frame=pendingVideo;pendingVideo=null;if(!frame||worker!==frame.w)return;
+ pendingVideo={m,w};if(cancelPaint)return;
+ const paint=()=>{cancelPaint=null;const frame=pendingVideo;pendingVideo=null;if(!frame||worker!==frame.w)return;
   const {m,w}=frame,t=performance.now();
   try{if(canvas.width!==m.w||canvas.height!==m.h){canvas.width=m.w;canvas.height=m.h;}ctx.putImageData(new ImageData(new Uint8ClampedArray(m.buffer),m.w,m.h),0,0);++painted;paintMs+=performance.now()-t;$('screen-empty').hidden=true;}finally{w.postMessage({type:'video-ack'});}
- });
+ };
+ // Some occluded windows throttle rAF even while visibilityState is visible.
+ cancelPaint=schedulePaint(paint);
 }
 function showPerformance(m){
  if(!Number.isFinite(m.frameRate))return;
  const now=performance.now(),elapsed=now-lastPaintReport,displayFps=elapsed?painted*1000/elapsed:0,drawMs=painted?paintMs/painted:0;
- $('performance').textContent=`模拟 ${m.frameRate.toFixed(1)} FPS · 显示 ${displayFps.toFixed(1)} FPS · 核心 ${m.coreMsPerFrame.toFixed(1)} ms/帧 · 等包 ${m.inputWaitMsPerFrame.toFixed(1)} ms/帧`;
+ $('performance').textContent=`模拟 ${m.frameRate.toFixed(1)} FPS · 绘制 ${displayFps.toFixed(1)} FPS · 核心 ${m.coreMsPerFrame.toFixed(1)} ms/帧 · 等包 ${m.inputWaitMsPerFrame.toFixed(1)} ms/帧`;
  $('performance-hint').textContent=document.hidden?'后台运行中，浏览器会限制画面刷新。':m.coreMsPerFrame>16?'模拟计算超过每帧预算，设备当前无法满速。':m.inputWaitMsPerFrame>4?'正在等待其他玩家输入，请检查全员网络与帧率。':m.frameRate>54&&displayFps<45?'模拟接近满速，画面显示受浏览器或主线程影响。':m.frameRate>54&&mode!=='solo'?`模拟接近满速；当前网络缓冲约 ${(Number($('input-delay').value)/59.7275).toFixed(2)} 秒，按键会有对应延迟。`:'声音与画面独立播放，模拟不会等待绘制。';
  log(`presentation ${JSON.stringify({displayFps:Math.round(displayFps*10)/10,drawMs:Math.round(drawMs*100)/100,audio:audioNode?'worklet':'legacy',...audioStats,hidden:document.hidden})}`);
  painted=paintMs=0;lastPaintReport=now;
 }
 function setKeys(v){keys=v;worker?.postMessage({type:'keys',keys});}
 function clearKeys(){setKeys(0);}
-function finish(w){if(w!==worker)return;worker=null;active=false;paused=false;clearKeys();cancelAnimationFrame(paintRequest);paintRequest=0;pendingVideo=null;audioNode?.port.postMessage({reset:true});$('pause').textContent='暂停';$('game-status').textContent='游戏已结束，可重新开始';$('local-status').textContent='已断开';$('peer-status').textContent='已断开';$('latency').textContent='— ms';audio?.suspend();w.terminate();refresh();}
+function finish(w){if(w!==worker)return;worker=null;active=false;paused=false;clearKeys();cancelPaint?.();cancelPaint=null;pendingVideo=null;audioNode?.port.postMessage({reset:true});$('pause').textContent='暂停';$('game-status').textContent='游戏已结束，可重新开始';$('local-status').textContent='已断开';$('peer-status').textContent='已断开';$('latency').textContent='— ms';audio?.suspend();w.terminate();refresh();}
 function handle(m,w,context){if(worker!==w)return;
  if(m.type==='state'){$('game-status').textContent=m.state==='playing_solo'&&context.resumed?'单人游戏中 · 已继续上次进度':stateText[m.state]||m.state;log(`state=${m.state}`);if(['playing_solo','playing_online'].includes(m.state)){painted=paintMs=0;lastPaintReport=performance.now();}if(['waiting','auth_sent'].includes(m.state))$('local-status').textContent=`${currentRole==='solo'?'本地':`玩家 ${Number(currentRole.slice(1))+1}`} · ${m.state==='waiting'?'已认证':'认证中'}`;if(['connected','synchronizing','playing_online'].includes(m.state)){$('local-status').textContent=`玩家 ${Number(currentRole.slice(1))+1} · 已连接`;$('peer-status').textContent=`${Number($('player-count').value)-1} 位已连接`;}}
  else if(m.type==='video')queueVideo(m,w);

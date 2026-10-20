@@ -4,6 +4,17 @@ import {Worker} from 'node:worker_threads';
 import {readFile,writeFile} from 'node:fs/promises';
 import {createVideoMailbox} from '../src/video-mailbox.mjs';
 import {StereoRing} from '../src/audio-ring.mjs';
+import {schedulePaint} from '../src/paint-scheduler.mjs';
+
+// A throttled rAF must not throttle the display consumer. Either callback wins
+// once; cancelling a session prevents both callbacks from painting stale data.
+for(const winner of ['animation','timer','cancel']){
+ let animation,timer,paints=0,animationCancelled=false,timerCancelled=false;
+ const clock={requestAnimationFrame(f){animation=f;return 1;},setTimeout(f){timer=f;return 2;},cancelAnimationFrame(id){assert.equal(id,1);animationCancelled=true;},clearTimeout(id){assert.equal(id,2);timerCancelled=true;}};
+ const cancel=schedulePaint(()=>++paints,clock);
+ if(winner==='cancel')cancel();else if(winner==='animation')animation();else timer();
+ animation();timer();assert.equal(paints,winner==='cancel'?0:1);assert(animationCancelled&&timerCancelled);
+}
 
 const sent=[],mailbox=createVideoMailbox(frame=>sent.push(frame));mailbox.enable();
 for(let frame=0;frame<600;frame++)mailbox.push(frame);
