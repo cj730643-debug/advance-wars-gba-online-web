@@ -10,8 +10,8 @@ assert(build.includes('Could not locate unique GBA Wi-Fi Link callback initializ
 assert(build.includes('Partially applied or ambiguous WAN deadline configuration'), 'build must reject partial or duplicate patching');
 assert(build.includes('GBA_LINK_CALIBRATION_MAX_SAMPLE_US 10000000'), 'build must tolerate a delayed background-tab calibration sample');
 assert(build.includes('GBA_LINK_CALIBRATION_POLICY_VERSION 2'), 'build must prevent mixed old/new calibration policies');
-assert(build.includes("text.find('static bool _absoluteDeadline(')"), 'build must scope the deadline patch to its helper');
-assert(build.includes("re.finditer(pattern,body)"), 'build must locate the absolute deadline assignment robustly');
-assert(build.includes('const uint64_t duration = UINT64_C(10000000);'), 'build must extend the absolute calibration/accept deadline to 10 s');
+
+
+
 assert(build.includes("raise SystemExit('Unexpected source version while patching '+label)"), 'build must fail closed on unexpected upstream source');
-console.log('WAN calibration deadline and background-tab tolerance smoke test passed.');
+console.log('WAN calibration policy and background-tab tolerance smoke test passed.');

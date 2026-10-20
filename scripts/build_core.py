@@ -49,22 +49,6 @@ patch_once(protocol,
  '#define GBA_LINK_CALIBRATION_POLICY_VERSION 1\n',
  '#define GBA_LINK_CALIBRATION_POLICY_VERSION 2\n',
  'calibration policy version')
-session=src/'src/gba/sio/netplay/session-v2.c'
-text=session.read_text(encoding='utf-8')
-start=text.find('static bool _absoluteDeadline(')
-end=text.find('\n}',start)
-if start<0 or end<0:
- raise SystemExit('Could not locate protocol-v2 absolute deadline helper')
-body=text[start:end]
-pattern=r'const uint64_t duration\s*=\s*UINT64_C\(\s*\d+\s*\);'
-matches=list(re.finditer(pattern,body))
-if len(matches)==1:
- match=matches[0]
- body=body[:match.start()]+'const uint64_t duration = UINT64_C(10000000);'+body[match.end():]
-elif body.count('const uint64_t duration = UINT64_C(10000000);')!=1:
- raise SystemExit('Unexpected absolute deadline constant in protocol-v2 helper: '+repr(body[:500]))
-text=text[:start]+body+text[end:]
-session.write_text(text,encoding='utf-8')
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
 cmake=shutil.which('cmake') or str(Path.home()/'.local/bin/cmake');ninja=shutil.which('ninja') or str(Path.home()/'.local/bin/ninja')
