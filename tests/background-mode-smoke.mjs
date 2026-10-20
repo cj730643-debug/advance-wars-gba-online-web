@@ -11,7 +11,11 @@ assert(!app.includes('联机页面进入后台，已结束会话'), 'background 
 assert(!app.includes("$('stop').click()"), 'visibility handling must not click the stop button');
 assert(app.includes('后台运行中 · 联机不会因切换标签页主动结束'), 'background state should be visible');
 assert(app.includes('visibility=visible; multiplayer session remains active'), 'returning to foreground should be logged');
-assert(app.includes("if(mode==='solo'&&!paused)"), 'solo mode should retain its existing auto-pause behavior');
+const visibilityHandler = app.slice(app.indexOf("document.addEventListener('visibilitychange'"));
+assert(!visibilityHandler.includes("mode==='solo'&&!paused"), 'solo mode must not auto-pause on visibility changes');
+assert(!visibilityHandler.includes("type:'pause'"), 'visibility changes must not send a pause command');
+assert(visibilityHandler.includes("document.hidden&&active&&mode!=='solo'"), 'background status handling should be multiplayer-only');
+assert(app.includes("$('pause').onclick=()=>{if(mode!=='solo'||!worker)return;paused=!paused;"), 'manual single-player pause control must remain available');
 assert(worker.includes('createIncomingQueue()'), 'worker should use a byte-accounted receive queue');
 assert(worker.includes("case'visibility':pageHidden=!!m.hidden;break;"), 'worker should receive visibility state');
 assert(worker.includes('isBackground:()=>pageHidden'), 'group sync should know when its own page is hidden');
