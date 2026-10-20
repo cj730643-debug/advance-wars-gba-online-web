@@ -52,7 +52,7 @@ patch_once(protocol,
 session=src/'src/gba/sio/netplay/session-v2.c'
 text=session.read_text(encoding='utf-8')
 start=text.find('static bool _absoluteDeadline(')
-end=text.find('\\n}',start)
+end=text.find('\n}',start)
 if start<0 or end<0:
  raise SystemExit('Could not locate protocol-v2 absolute deadline helper')
 body=text[start:end]
@@ -62,9 +62,8 @@ if body.count(old_duration)==1:
  body=body.replace(old_duration,new_duration,1)
 elif body.count(new_duration)!=1:
  raise SystemExit('Unexpected absolute deadline constant in protocol-v2 helper')
- text=text[:start]+body+text[end:]
+text=text[:start]+body+text[end:]
 session.write_text(text,encoding='utf-8')
-
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
 cmake=shutil.which('cmake') or str(Path.home()/'.local/bin/cmake');ninja=shutil.which('ninja') or str(Path.home()/'.local/bin/ninja')
