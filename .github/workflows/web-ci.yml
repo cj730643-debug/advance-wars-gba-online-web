@@ -26,6 +26,7 @@ jobs:
       - run: node --check src/group-session.mjs
       - run: node --check src/emulator-worker.mjs
       - run: node tests/background-mode-smoke.mjs
+      - run: node tests/mouse-controls-smoke.mjs
       - run: node --check src/emulator-worker.mjs
       - run: npm test --prefix relay
       - run: node -e "require('fs').mkdirSync('logs',{recursive:true})"
