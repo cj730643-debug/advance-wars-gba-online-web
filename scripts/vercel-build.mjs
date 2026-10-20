@@ -16,4 +16,9 @@ const evidence=JSON.parse(await readFile('dist/test-evidence.json','utf8'));
 const sha=createHash('sha256').update(wasm).digest('hex');
 if(evidence['core-smoke']?.wasmSHA256!==sha)throw Error('Core differs from the tested artifact');
 for(const name of ['index.html','aw-core.mjs','source.zip','LICENSE.txt','THIRD_PARTY_NOTICES.txt','TEST_REPORT.txt'])await readFile(`dist/${name}`);
+// Refresh the shipped static-asset manifest after copying the latest source files.
+const sums=(await readFile('dist/SHA256SUMS.txt','utf8')).trim().split(/\r?\n/);
+const refreshed=[];
+for(const line of sums){const sep=line.indexOf('  ');if(sep<0)throw Error('Invalid SHA-256 manifest');const name=line.slice(sep+2);const bytes=await readFile(`dist/${name}`);refreshed.push(`${createHash('sha256').update(bytes).digest('hex')}  ${name}`);}
+await writeFile('dist/SHA256SUMS.txt',`${refreshed.join('\n')}\n`);
 console.log(`Static browser build verified. mGBA WASM SHA-256 ${sha}`);

@@ -69,6 +69,17 @@ test('expired token, token replay and stolen role rejected', async t => {
   const b = (await join(c.code)).body;
   const wrongRole = await connect({ ...b, role: 0 }); assert.equal((await wrongRole.next()).reason, 'AUTH_REJECTED');
 });
+test('default heartbeat tolerates a five-minute background timer pause', async t => {
+  let now = 0;
+  const { pair, r } = await setup(t, { clock: () => now });
+  const { x, y } = await pair();
+  now = 299_999; r.sweep();
+  assert.equal(r.rooms.size, 1, 'room should survive a pause shorter than the default heartbeat');
+  now = 300_001; r.sweep();
+  assert.equal((await x.next()).reason, 'HEARTBEAT_TIMEOUT');
+  assert.equal((await y.next()).reason, 'HEARTBEAT_TIMEOUT');
+  assert.equal(r.rooms.size, 0);
+});
 test('room expiry, heartbeat timeout, no reconnection after drop', async t => {
   let now = 0; const { create, join, pair, r } = await setup(t, { clock: () => now, authTtl: 1000, roomTtl: 200, heartbeat: 100 });
   const a = (await create()).body; now = 201; r.sweep(); assert.equal((await join(a.code)).status, 404);

@@ -44,7 +44,7 @@ export function createRelay(options = {}) {
   const clock = options.clock ?? (() => performance.now());
   const ttl = options.roomTtl ?? 10 * 60_000;
   const authTtl = options.authTtl ?? 60_000;
-  const heartbeat = options.heartbeat ?? 15_000;
+  const heartbeat = options.heartbeat ?? 300_000;
   const maxLifetime = options.maxLifetime ?? 8 * 3600_000;
   const maxRooms = options.maxRooms ?? 100;
   const maxConnections = options.maxConnections ?? 200;

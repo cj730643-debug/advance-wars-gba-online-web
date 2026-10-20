@@ -8,8 +8,25 @@ const sleep=n=>new Promise(r=>setTimeout(r,n));
 const sha=async b=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',b)),v=>v.toString(16).padStart(2,'0')).join('');
 let running=false,stopping=false,paused=false,exportRequested=false,transport,core,mode,role='solo',fatal='',frames=0,audioFrames=0,afterReady=0,groupMetrics=null;
 const emit=(type,data={})=>postMessage({type,...data});
+function createIncomingQueue(){
+ const queue=[];queue.bytes=0;
+ const size=item=>item?.byteLength??item?.bytes??item?.payload?.byteLength??0;
+ const push=queue.push.bind(queue),shift=queue.shift.bind(queue),splice=queue.splice.bind(queue);
+ queue.push=(...items)=>{for(const item of items)queue.bytes+=size(item);return push(...items);};
+ queue.shift=()=>{const item=shift();if(item)queue.bytes=Math.max(0,queue.bytes-size(item));return item;};
+ queue.splice=function(start,deleteCount,...items){
+  const args=arguments.length===1?[start]:[start,deleteCount,...items];
+  const added=arguments.length>=3?items:[];
+  const removed=splice(...args);
+  for(const item of removed)queue.bytes=Math.max(0,queue.bytes-size(item));
+  for(const item of added)queue.bytes+=size(item);
+  return removed;
+ };
+ return queue;
+}
 function fail(reason){if(!fatal&&!stopping){fatal=reason;front.terminal=true;emit('error',{reason});}}
-const front={keys:0,terminal:false,incoming:[],audioEnabled:true,
+let pageHidden=false;
+const front={keys:0,terminal:false,incoming:createIncomingQueue(),audioEnabled:true,
  notice(text,error){emit('log',{text:String(text).slice(0,2000)});if(error)fail(/calibrat.*(timeout|timed out)/i.test(text)?'CORE_CALIBRATION_TIMEOUT':'CORE_SYNC_FAILURE');},
  video(bytes,w,h){++frames;postMessage({type:'video',buffer:bytes.buffer,w,h},[bytes.buffer]);},
  audio(bytes,rate){audioFrames+=bytes.length/2;if(front.audioEnabled)postMessage({type:'audio',buffer:bytes.buffer,rate},[bytes.buffer]);}};
@@ -28,7 +45,7 @@ async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
   if(![3,4].includes(msg.players))throw Error('GROUP_INVALID_ROLE');
   transport=await createGroupTransport({origin:msg.relay,host:mode==='host',code:msg.code,manifest:{game:msg.game,players:msg.players,protocol:GROUP_PROTOCOL,coreProtocol:'mgba-gba-link-group-1',rom:romHash,core:coreHash,config:await sha(new TextEncoder().encode(PROFILE+';group-v1;delay8;players='+msg.players))},front,onRoom:async info=>{role=`p${info.role}`;importBattery(msg.saves);emit('room',{...info,players:msg.players});},onRoster:info=>emit('roster',info),onState:state=>emit('state',{state}),onFailure:fail,onRtt:ms=>emit('rtt',{ms})});
   await transport.ready;if(stopping)return;emit('state',{state:'synchronizing'});
-  await runGroupSession({core,transport,front,players:msg.players,role:transport.role,emit,metrics,stopped:()=>stopping});return;
+  await runGroupSession({core,transport,front,players:msg.players,role:transport.role,emit,metrics,stopped:()=>stopping,isBackground:()=>pageHidden});return;
  }
  if(mode==='solo'){importBattery(msg.saves);emit('state',{state:'playing_solo'});}else{
   transport=await createTransport({origin:msg.relay,host:mode==='host',code:msg.code,manifest:{game:msg.game,protocol:PROTOCOL,coreProtocol:'mgba-gba-link-replicated-v2',rom:romHash,core:coreHash,config:configHash},front,
@@ -48,4 +65,4 @@ async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
  }catch(e){if(!stopping)fail(e.message||'UNKNOWN_ERROR');}
  finally{front.keys=0;if(core){await core.ccall('aw_stop',null,[],[],{async:true});battery();metrics();}transport?.close();emit('stopped',{reason:fatal||'SESSION_STOPPED'});}
 }
-globalThis.onmessage=({data:m})=>{switch(m.type){case'start':void boot(m);break;case'keys':front.keys=m.keys&0xffff;break;case'audio':front.audioEnabled=!!m.enabled;break;case'pause':paused=!!m.paused;front.keys=0;break;case'export':exportRequested=true;break;case'stop':stopping=true;front.terminal=true;front.keys=0;transport?.close();break;}};
+globalThis.onmessage=({data:m})=>{switch(m.type){case'start':void boot(m);break;case'keys':front.keys=m.keys&0xffff;break;case'audio':front.audioEnabled=!!m.enabled;break;case'pause':paused=!!m.paused;front.keys=0;break;case'visibility':pageHidden=!!m.hidden;break;case'export':exportRequested=true;break;case'stop':stopping=true;front.terminal=true;front.keys=0;transport?.close();break;}};
