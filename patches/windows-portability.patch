@@ -1,0 +1,127 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 82fe6321a..e10fb32d7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -227,6 +227,10 @@ if(WIN32)
+ 	list(APPEND CORE_VFS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/util/vfs/vfs-fd.c)
+ 	list(APPEND VFS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/vfs-w32.c)
+ 	file(GLOB OS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/*.c)
++	# Advance Wars Online modification: directory VFS is already in VFS_SRC.
++	# Keeping it in OS_SRC also compiles it in the minimal libretro core,
++	# where ENABLE_DIRECTORIES is intentionally not defined.
++	list(REMOVE_ITEM OS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/vfs-w32.c)
+ 	source_group("Windows-specific code" FILES ${OS_SRC})
+ elseif(UNIX)
+ 	set(USE_PTHREADS ON)
+diff --git a/src/gba/replicated-pair.c b/src/gba/replicated-pair.c
+index 239989c74..967f4c9ba 100644
+--- a/src/gba/replicated-pair.c
++++ b/src/gba/replicated-pair.c
+@@ -23,7 +23,9 @@ static int _requestedId(struct mLockstepUser* user) {
+ 	return ((struct GBAReplicatedPairUser*) user)->requestedId;
+ }
+ 
+-static void _sleep(struct mLockstepUser* user) {
++/* Advance Wars Online modification: avoid the Windows CRT _sleep symbol.
++ * Callback behavior and scheduler timing are unchanged. */
++static void _pairSleep(struct mLockstepUser* user) {
+ 	struct GBAReplicatedPairUser* pairUser =
+ 	    (struct GBAReplicatedPairUser*) user;
+ 	pairUser->asleep = true;
+@@ -149,7 +151,7 @@ static enum GBAReplicatedPairResult _createPlayer(
+ 	player->saveGeneration = 1;
+ 	player->user.requestedId = playerId;
+ 	player->user.d.requestedId = _requestedId;
+-	player->user.d.sleep = _sleep;
++	player->user.d.sleep = _pairSleep;
+ 	player->user.d.wake = _wake;
+ 	GBASIOLockstepDriverCreate(&player->driver, &player->user.d);
+ 	GBASIOLockstepCoordinatorAttach(&pair->coordinator, &player->driver);
+diff --git a/src/gba/sio/netplay/session-v2.c b/src/gba/sio/netplay/session-v2.c
+index eb9991be8..d9c77484d 100644
+--- a/src/gba/sio/netplay/session-v2.c
++++ b/src/gba/sio/netplay/session-v2.c
+@@ -187,7 +187,15 @@ static bool _absoluteDeadline(
+ 	struct GBALinkV2Session* session, uint64_t now,
+ 	uint64_t* deadline, enum GBALinkV2Reason reason,
+ 	const char* diagnostic) {
+-	const uint64_t duration = UINT64_C(3000000);
++	/* Advance Wars Online modification: honor the existing validated network
++	 * deadline policy. Defaults remain 3s; WAN frontends may select 10s.
++	 * These are wall-clock handshake deadlines, not emulated GBA timing. */
++	enum GBALinkV2DeadlineOperation operation =
++	    reason == GBA_LINK_V2_REASON_ACCEPT_CLOCK_FAILURE
++	        ? GBA_LINK_V2_DEADLINE_ACCEPT
++	        : GBA_LINK_V2_DEADLINE_CALIBRATION;
++	const uint64_t duration =
++	    (uint64_t) session->config.deadlines.milliseconds[operation] * 1000;
+ 	if (now > UINT64_MAX - duration) {
+ 		GBALinkV2SessionFail(session, reason, diagnostic);
+ 		return false;
+diff --git a/src/platform/libretro/gba-wifi-link.c b/src/platform/libretro/gba-wifi-link.c
+index af96ea034..0af9772b8 100644
+--- a/src/platform/libretro/gba-wifi-link.c
++++ b/src/platform/libretro/gba-wifi-link.c
+@@ -1439,6 +1439,15 @@ static bool _buildConfig(
+ 	adapter->sessionConfig.estimatedJitterMs = 5;
+ 	adapter->sessionConfig.experimentalRuntime = true;
+ 	GBALinkV2DeadlinePolicyInit(&adapter->sessionConfig.deadlines);
++	/* Advance Wars Online modification: optional bounded WAN calibration.
++	 * Unset/LAN keeps the qualified upstream 3s behavior. */
++	struct retro_variable network = { .key = "mgba_link_netplay_network" };
++	if (adapter->environment &&
++	    adapter->environment(RETRO_ENVIRONMENT_GET_VARIABLE, &network) &&
++	    network.value && !strcmp(network.value, "internet")) {
++		adapter->sessionConfig.deadlines.milliseconds[
++		    GBA_LINK_V2_DEADLINE_CALIBRATION] = 10000;
++	}
+ 	adapter->sessionConfig.callbacks = &_sessionCallbacks;
+ 	adapter->sessionConfig.callbackContext = adapter;
+ 	return true;
+diff --git a/src/platform/libretro/libretro_core_options.h b/src/platform/libretro/libretro_core_options.h
+index eb275587b..1b0119b6f 100644
+--- a/src/platform/libretro/libretro_core_options.h
++++ b/src/platform/libretro/libretro_core_options.h
+@@ -169,6 +169,21 @@ struct retro_core_option_v2_definition option_defs_us[] = {
+       },
+       "stable"
+    },
++   /* Advance Wars Online modification: network handshake wall-clock policy. */
++   {
++      "mgba_link_netplay_network",
++      "GBA Wi-Fi Link Network",
++      NULL,
++      "LAN preserves the three-second calibration deadline. Internet permits ten seconds for the same 24 probes. No prediction, delay limit or GBA timing changes.",
++      NULL,
++      "system",
++      {
++         { "lan", "LAN (3s calibration)" },
++         { "internet", "Internet relay (10s calibration)" },
++         { NULL, NULL },
++      },
++      "lan"
++   },
+    {
+       "mgba_sgb_borders",
+       "Use Super Game Boy Borders (Restart)",
+diff --git a/src/util/test/hash.c b/src/util/test/hash.c
+index 308ab473a..3905b31d7 100644
+--- a/src/util/test/hash.c
++++ b/src/util/test/hash.c
+@@ -27,10 +27,13 @@ M_TEST_DEFINE(helloWorldCrc32) {
+ 
+ #ifndef HAVE_CRC32
+ M_TEST_DEFINE(stagedCrc32) {
+-	uint8_t buffer[1] = { '\n\n' };
++	/* Advance Wars Online modification: two actual bytes for the two-byte
++	 * CRC assertion; the upstream multi-character literal read out of bounds.
++	 * CRC32("\n\n") = 0x5BE3136B, independently checked with Python zlib. */
++	uint8_t buffer[2] = { '\n', '\n' };
+ 	assert_int_equal(crc32(0, buffer, 1), 0x32D70693);
+-	assert_int_equal(crc32(0, buffer, 2), 0x09304EBD);
+-	assert_int_equal(crc32(0x32D70693, buffer, 1), 0x09304EBD);
++	assert_int_equal(crc32(0, buffer, 2), 0x5BE3136B);
++	assert_int_equal(crc32(0x32D70693, buffer, 1), 0x5BE3136B);
+ }
+ #endif
+ 

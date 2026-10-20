@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "buildCommand": "node scripts/vercel-build.mjs",
+  "installCommand": "",
+  "outputDirectory": "dist"
+}

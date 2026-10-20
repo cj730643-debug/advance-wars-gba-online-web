@@ -1,0 +1,12 @@
+node_modules/
+build/
+logs/
+vendor/
+__pycache__/
+*.tmp
+.vercel/
+.vercel
+.env*
+
+.env*
+dist/source.zip

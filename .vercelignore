@@ -1,0 +1,9 @@
+build
+logs
+vendor
+node_modules
+.git
+.openai
+relay/node_modules
+
+.env*

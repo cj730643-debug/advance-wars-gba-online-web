@@ -1,0 +1,181 @@
+{
+  "public-cors": {
+    "testedAt": "2026-10-20T00:17:49Z",
+    "relay": "https://aw-relay-production.up.railway.app",
+    "origin": "https://advance-wars-gba-online-web.cj730643.chatgpt.site",
+    "health": "passed",
+    "preflight": "passed",
+    "durationSeconds": 11.3
+  },
+  "worker-public-wss": {
+    "testedAt": "2026-10-20T00:18:05.988Z",
+    "relay": "https://aw-relay-production.up.railway.app",
+    "scope": "Actual browser Worker source in Node Worker, CC0 diagnostic ROM; no browser UI or commercial game claim",
+    "solo": {
+      "mode": "solo",
+      "states": [
+        "loading",
+        "playing_solo"
+      ],
+      "errors": [],
+      "metrics": {
+        "type": "metrics",
+        "frames": 61,
+        "audioFrames": 32998,
+        "afterReady": 0,
+        "ready": false,
+        "stateSent": 0,
+        "stateReceived": 0
+      },
+      "video": 61,
+      "audio": 32998,
+      "saveBytes": 131072,
+      "exportWhilePaused": true,
+      "complete": false
+    },
+    "pair": [
+      {
+        "mode": "host",
+        "states": [
+          "loading",
+          "auth_sent",
+          "waiting",
+          "connected",
+          "synchronizing",
+          "playing_online"
+        ],
+        "errors": [],
+        "metrics": {
+          "type": "metrics",
+          "frames": 323,
+          "audioFrames": 87328,
+          "afterReady": 160,
+          "ready": true,
+          "stateSent": 2,
+          "stateReceived": 2
+        },
+        "video": 323,
+        "audio": 87328,
+        "saveBytes": 131072,
+        "exportWhilePaused": false,
+        "complete": true
+      },
+      {
+        "mode": "join",
+        "states": [
+          "loading",
+          "auth_sent",
+          "waiting",
+          "connected",
+          "synchronizing",
+          "playing_online"
+        ],
+        "errors": [],
+        "metrics": {
+          "type": "metrics",
+          "frames": 323,
+          "audioFrames": 87862,
+          "afterReady": 161,
+          "ready": true,
+          "stateSent": 2,
+          "stateReceived": 2
+        },
+        "video": 323,
+        "audio": 87862,
+        "saveBytes": 131072,
+        "exportWhilePaused": false,
+        "complete": true
+      }
+    ]
+  },
+  "worker-smoke": {
+    "testedAt": "2026-10-20T00:17:08.056Z",
+    "relay": "http://127.0.0.1:42937",
+    "scope": "Actual browser Worker source in Node Worker, CC0 diagnostic ROM; no browser UI or commercial game claim",
+    "solo": {
+      "mode": "solo",
+      "states": [
+        "loading",
+        "playing_solo"
+      ],
+      "errors": [],
+      "metrics": {
+        "type": "metrics",
+        "frames": 61,
+        "audioFrames": 32998,
+        "afterReady": 0,
+        "ready": false,
+        "stateSent": 0,
+        "stateReceived": 0
+      },
+      "video": 61,
+      "audio": 32998,
+      "saveBytes": 131072,
+      "exportWhilePaused": true,
+      "complete": false
+    },
+    "pair": [
+      {
+        "mode": "host",
+        "states": [
+          "loading",
+          "auth_sent",
+          "waiting",
+          "connected",
+          "synchronizing",
+          "playing_online"
+        ],
+        "errors": [],
+        "metrics": {
+          "type": "metrics",
+          "frames": 181,
+          "audioFrames": 77452,
+          "afterReady": 142,
+          "ready": true,
+          "stateSent": 2,
+          "stateReceived": 2
+        },
+        "video": 181,
+        "audio": 77452,
+        "saveBytes": 131072,
+        "exportWhilePaused": false,
+        "complete": true
+      },
+      {
+        "mode": "join",
+        "states": [
+          "loading",
+          "auth_sent",
+          "waiting",
+          "connected",
+          "synchronizing",
+          "playing_online"
+        ],
+        "errors": [],
+        "metrics": {
+          "type": "metrics",
+          "frames": 181,
+          "audioFrames": 76888,
+          "afterReady": 141,
+          "ready": true,
+          "stateSent": 2,
+          "stateReceived": 2
+        },
+        "video": 181,
+        "audio": 76888,
+        "saveBytes": 131072,
+        "exportWhilePaused": false,
+        "complete": true
+      }
+    ]
+  },
+  "core-smoke": {
+    "testedAt": "2026-10-20T00:17:03.595Z",
+    "fixture": "CC0 gba-link-continuous",
+    "wasmSHA256": "199c6e8f0ee1fb107e875b3f6f46c67e904074adaaa6b2df000cbf43cd92aac6",
+    "frames": 180,
+    "audioFrames": 98284,
+    "inputReads": 2160,
+    "saveBytes": 131072
+  }
+}

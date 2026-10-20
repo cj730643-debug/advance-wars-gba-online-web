@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFile,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import createCore from '../dist/aw-core.mjs';
+const rom=await readFile(new URL('./fixtures/gba-link-continuous.gba',import.meta.url));
+assert.equal(createHash('sha256').update(rom).digest('hex'),'c1fe01752d4f5863d6e3e1a9866b061aaadf2927ccc3df31ba9ecbf4bc68fe9d');
+const wasm=await readFile(new URL('../dist/aw-core.wasm',import.meta.url));let frames=0,audioFrames=0,inputReads=0;
+const frontend={terminal:false,incoming:[],get keys(){++inputReads;return frames>=60&&frames<90?8:0;},notice(text,error){assert(!error,text);},video(b,w,h){assert.equal(b.length,w*h*4);frames++;},audio(b){audioFrames+=b.length/2;}};
+const c=await createCore({wasmBinary:wasm,frontend,print:()=>{},printErr:()=>{}});assert.equal(c.HEAPU8.buffer.constructor,ArrayBuffer);
+const p=c._malloc(rom.length);c.HEAPU8.set(rom,p);assert.equal(await c.ccall('aw_load','number',['number','number'],[p,rom.length],{async:true}),1);c._free(p);
+for(let i=0;i<180;i++)assert.equal(await c.ccall('aw_run','number',[],[],{async:true}),1);
+assert(frames>=180);assert(audioFrames>0);assert(inputReads>0);assert.equal(c._aw_terminal(),0);
+const n=c._aw_save_size();assert(n>0);const save=c.HEAPU8.slice(c._aw_save_data(),c._aw_save_data()+n),s=c._malloc(n);save[0]^=1;c.HEAPU8.set(save,s);assert.equal(c._aw_import_save(s,n),1);assert.equal(c.HEAPU8[c._aw_save_data()],save[0]);assert.equal(c._aw_import_save(s,n-1),0);c._free(s);c._aw_stop();
+const evidence={testedAt:new Date().toISOString(),fixture:'CC0 gba-link-continuous',wasmSHA256:createHash('sha256').update(wasm).digest('hex'),frames,audioFrames,inputReads,saveBytes:n};await writeFile(new URL('../logs/core-smoke.json',import.meta.url),JSON.stringify(evidence,null,2));console.log(evidence);

@@ -1,0 +1,38 @@
+# Third-party notices and source offer
+
+This is an independent development alpha, not an official Nintendo or mGBA product.
+
+| Component | Version/source | License / distribution |
+|---|---|---|
+| mGBA Wi-Fi Link | Aelvryx/mgba-wifi-link, 9e919b0cfbb93af7d1171570dfc6745d00eeebab | MPL-2.0; core DLL and complete corresponding modified source included |
+| mGBA contributors and embedded third-party code | Files and copyright headers in vendor/mgba-wifi-link | Original per-file notices retained, including blip_buf, inih and CRC routines |
+| libretro API header | Vendored upstream header, original pin recorded in vendor UPSTREAM.md | Original permissive header notice retained |
+| JSON for Modern C++ | Niels Lohmann 3.12.0 | MIT; client header and license included |
+| ws | 8.22.0, websockets/ws | MIT; Relay dependency obtained through lockfile; license included |
+| Node.js | Required separately for server, not bundled in Windows installer | Node.js license and third-party notices belong to selected server runtime |
+| GCC/MinGW runtime | Cross-built development artifacts use GCC 13 and mingw-w64 11 | GCC Runtime Library Exception and mingw-w64 notices included; compiler not bundled |
+| Caddy | Optional deployment container, not bundled in installer | Apache-2.0; obtain complete notices from the selected container distribution |
+| NSIS | Installer generated with NSIS 3.09 | NSIS zlib/libpng licenses and component notices supplied by NSIS distribution; notices included |
+
+All project additions are offered under MPL-2.0. Upstream modifications are identified in
+`docs/SOURCE_AUDIT.md` and `patches/windows-portability.patch`; original copyright notices
+are preserved. The upstream ROM fixtures are purpose-built CC0 diagnostic homebrew,
+not either commercial Advance Wars game.
+
+**How to obtain corresponding source:** every portable/installed distribution contains
+`AdvanceWars-GBA-Online-Source.zip`. Unzip it to obtain the full modified core source,
+desktop and server sources, build/packaging scripts, tests, notices and upstream pin.
+This offline source copy accompanies the executable and is not dependent on a future
+GitHub repository becoming available. Source ZIP excludes upstream cinema recordings
+and commercial cartridge images; it retains the open diagnostic fixtures needed for
+the focused unit tests. No commercial ROM, commercial BIOS or original game assets
+are distributed.
+
+Web adapter modifications, 2026-10-20:
+- native/core-host.cpp, native/bridge.hpp: browser host, copied Netpacket envelopes, Asyncify receive yielding, RGB conversion, audio/input, battery export. MPL-2.0.
+- src/*, scripts/*, tests/*: browser UI, Worker, WebSocket/HTTP relay, reproducible build and tests. MPL-2.0.
+- mGBA vendor retains the Windows portability and bounded WAN-calibration changes described in vendor patch history. No changes to CPU, GBA serial timing, input delay ceiling or state consistency checks for the browser port.
+- Emscripten 3.1.74 generated runtime and linked musl/compiler-rt/libc++/libc++abi: bundled licenses in licenses/.
+- ws 8.22.0 used only by the Relay and its tests (MIT), license in relay/node_modules/ws/LICENSE on npm install; not linked into browser.
+- Diagnostic GBA fixtures are upstream homebrew CC0; see tests/fixtures/UPSTREAM_README.md. No Nintendo or commercial game resources are supplied.
+- Full corresponding source and build scripts are downloadable as source.zip alongside the compiled WASM.
