@@ -18,7 +18,7 @@ const saveKey=(hash,slot)=>`aw-web-1:${hash}:${slot}`;
 const checkpointKey=hash=>`aw-web-checkpoint-v1:${hash}:solo`;
 async function readLocal(key){const db=await database();return new Promise((resolve,reject)=>{const q=db.transaction('saves').objectStore('saves').get(key);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});}
 function putLocal(key,value,extra){writeQueue=writeQueue.catch(()=>{}).then(async()=>{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('saves','readwrite'),store=tx.objectStore('saves');store.put(value,key);if(extra)store.put(extra.value,extra.key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('STORAGE_ABORTED'));});});return writeQueue;}
-function rememberPreferences(){void putLocal('aw-web-preferences-v1',{game:$('game-version').value,players:$('player-count').value,inputDelay:$('input-delay').value,sound,screenControls,smoothing}).catch(()=>log('PREFERENCES_WRITE_FAILED'));}
+function rememberPreferences(){void putLocal('aw-web-preferences-v1',{game:$('game-version').value,players:$('player-count').value,inputDelay:$('input-delay').value,inputDelayPolicy:2,sound,screenControls,smoothing}).catch(()=>log('PREFERENCES_WRITE_FAILED'));}
 async function selectRom(chosen,{remember=true}={}){
  const mine=++romSelection,b=await chosen.arrayBuffer();if(b.byteLength<192||b.byteLength>32*1024*1024||new Uint8Array(b)[0xb2]!==0x96)throw Error('INVALID_ROM');const h=await hash(b);if(mine!==romSelection||active)return;
  file=chosen;romHash=h;quickState=await readLocal(checkpointKey(h)).catch(()=>null);if(mine!==romSelection||active)return;
@@ -27,7 +27,8 @@ async function selectRom(chosen,{remember=true}={}){
  if(remember){await putLocal('aw-web-last-rom-v1',{file:chosen,name:chosen.name,hash:h});rememberPreferences();}
 }
 async function restoreLocalGame(){const selection=romSelection;try{const [prefs,last]=await Promise.all([readLocal('aw-web-preferences-v1'),readLocal('aw-web-last-rom-v1')]);if(romSelection!==selection||active||file)return;
- if(prefs){if(typeof prefs.smoothing==='boolean'){smoothing=prefs.smoothing;syncSmoothing();}if(typeof prefs.screenControls==='boolean'){screenControls=prefs.screenControls;syncScreenControls();}if(['aw1','aw2'].includes(prefs.game))$('game-version').value=prefs.game;if(['2','3','4'].includes(prefs.players))$('player-count').value=prefs.players;if(['8','16','32'].includes(prefs.inputDelay))$('input-delay').value=prefs.inputDelay;if(typeof prefs.sound==='boolean'){sound=prefs.sound;$('sound').textContent=`声音 ${sound?'开':'关'}`;$('sound').setAttribute('aria-pressed',String(sound));}}
+ if(prefs){if(typeof prefs.smoothing==='boolean'){smoothing=prefs.smoothing;syncSmoothing();}if(typeof prefs.screenControls==='boolean'){screenControls=prefs.screenControls;syncScreenControls();}if(['aw1','aw2'].includes(prefs.game))$('game-version').value=prefs.game;if(['2','3','4'].includes(prefs.players))$('player-count').value=prefs.players;if(['4','8','16','32'].includes(prefs.inputDelay))$('input-delay').value=prefs.inputDelay==='32'&&prefs.inputDelayPolicy!==2?'8':prefs.inputDelay;if(typeof prefs.sound==='boolean'){sound=prefs.sound;$('sound').textContent=`声音 ${sound?'开':'关'}`;$('sound').setAttribute('aria-pressed',String(sound));}}
+ if(prefs&&prefs.inputDelayPolicy!==2)rememberPreferences();
  if(last?.file instanceof Blob)await selectRom(new File([last.file],last.name||'game.gba'),{remember:false});
  }catch{log('LOCAL_GAME_RESTORE_FAILED');$('save-status').textContent='无法读取本地游戏，仍可重新选择 ROM 并导入存档。';}}
 
@@ -57,13 +58,13 @@ function showPerformance(m){
  if(!Number.isFinite(m.frameRate))return;
  const now=performance.now(),elapsed=now-lastPaintReport,displayFps=elapsed?painted*1000/elapsed:0,drawMs=painted?paintMs/painted:0;
  $('performance').textContent=`模拟 ${m.frameRate.toFixed(1)} FPS · ${smoothing?'画面':'绘制'} ${displayFps.toFixed(1)} FPS${smoothing?'（含补间）':''} · 核心 ${m.coreMsPerFrame.toFixed(1)} ms/帧 · 等包 ${m.inputWaitMsPerFrame.toFixed(1)} ms/帧`;
- $('performance-hint').textContent=document.hidden?'后台运行中，浏览器会限制画面刷新。':m.coreMsPerFrame>16?'模拟计算超过每帧预算，设备当前无法满速。':m.inputWaitMsPerFrame>4?'正在等待其他玩家输入，请检查全员网络与帧率。':m.frameRate>54&&displayFps<45?'模拟接近满速，画面显示受浏览器或主线程影响。':m.frameRate>54&&mode!=='solo'?`模拟接近满速；当前网络缓冲约 ${(Number($('input-delay').value)/59.7275).toFixed(2)} 秒，按键会有对应延迟。`:'声音与画面独立播放，模拟不会等待绘制。';
+ $('performance-hint').textContent=document.hidden?'后台运行中，浏览器会限制画面刷新。':m.coreMsPerFrame>16?'模拟计算超过每帧预算，设备当前无法满速。':m.inputWaitMsPerFrame>4?'正在等包：若当前为 4/8 帧，全员升至 16 帧可减少停顿，但操作延迟会增加；也请检查全员网络与帧率。':m.frameRate>54&&displayFps<45?'模拟接近满速，画面显示受浏览器或主线程影响。':m.frameRate>54&&mode!=='solo'?`模拟接近满速；当前网络缓冲约 ${(Number($('input-delay').value)/59.7275).toFixed(2)} 秒，按键会有对应延迟。`:'声音与画面独立播放，模拟不会等待绘制。';
  log(`presentation ${JSON.stringify({displayFps:Math.round(displayFps*10)/10,drawMs:Math.round(drawMs*100)/100,smoothing,blended,audio:audioNode?'worklet':'legacy',...audioStats,hidden:document.hidden})}`);
  painted=paintMs=blended=0;lastPaintReport=now;
 }
 function setKeys(v){keys=v;worker?.postMessage({type:'keys',keys});}
 function clearKeys(){setKeys(0);}
-function finish(w){if(w!==worker)return;worker=null;active=false;paused=false;clearKeys();cancelPaint?.();cancelPaint=null;pendingVideo=null;frameBlender?.stop();$('reconnect-panel').hidden=true;audioNode?.port.postMessage({reset:true});$('pause').textContent='暂停';$('game-status').textContent='游戏已结束，可重新开始';$('local-status').textContent='已断开';$('peer-status').textContent='已断开';$('latency').textContent='— ms';audio?.suspend();w.terminate();refresh();}
+function finish(w){if(w!==worker)return;worker=null;active=false;paused=false;clearKeys();cancelPaint?.();cancelPaint=null;pendingVideo=null;frameBlender?.stop();$('reconnect-panel').hidden=true;audioNode?.port.postMessage({reset:true});$('pause').textContent='暂停';$('game-status').textContent='游戏已结束，可重新开始';$('local-status').textContent='已断开';$('peer-status').textContent='已断开';$('latency').textContent='中继 — ms';audio?.suspend();w.terminate();refresh();}
 function handle(m,w,context){if(worker!==w)return;
  if(m.type==='state'){if(['reconnecting','peer_reconnecting'].includes(m.state)){clearKeys();audioNode?.port.postMessage({reset:true});$('reconnect-panel').hidden=false;$('reconnect-status').textContent=m.state==='reconnecting'?'正在自动重连，最多保留 2 分钟；请保持本页打开。':'正在等待对手重连，最多保留 2 分钟；请保持本页打开。';}else if(['connected','reconnected','playing_online'].includes(m.state)){$('reconnect-panel').hidden=true;}
  $('game-status').textContent=m.state==='playing_solo'&&context.resumed?'单人游戏中 · 已继续上次进度':stateText[m.state]||m.state;log(`state=${m.state}`);if(['playing_solo','playing_online','reconnected'].includes(m.state)){painted=paintMs=blended=0;lastPaintReport=performance.now();}if(['waiting','auth_sent'].includes(m.state))$('local-status').textContent=`${currentRole==='solo'?'本地':`玩家 ${Number(currentRole.slice(1))+1}`} · ${m.state==='waiting'?'已认证':'认证中'}`;if(['connected','synchronizing','playing_online'].includes(m.state)){$('local-status').textContent=`玩家 ${Number(currentRole.slice(1))+1} · 已连接`;$('peer-status').textContent=`${Number($('player-count').value)-1} 位已连接`;}}
@@ -78,7 +79,7 @@ function handle(m,w,context){if(worker!==w)return;
  }
  else if(m.type==='resumed'){context.resumed=true;$('save-status').textContent=`已恢复 ${new Date(m.savedAt).toLocaleString('zh-CN')} 的即时进度。`;log(`resumed frames=${m.frames}`);}
  else if(m.type==='warning'){$('save-status').textContent=m.reason==='SNAPSHOT_INCOMPATIBLE'?'旧即时存档格式不兼容，已从游戏内存档启动。':'即时存档未能生成，请在游戏内保存并导出备份。';log(m.reason);}
- else if(m.type==='rtt')$('latency').textContent=`${m.ms} ms`;
+ else if(m.type==='rtt')$('latency').textContent=`中继 ${m.ms} ms`;
  else if(m.type==='build'){log(`build ${JSON.stringify(m)}`);if(m.version!==BUILD_ID){showError('CONFIG_MISMATCH');w.postMessage({type:'stop'});}}
  else if(m.type==='log')log(m.text);
  else if(m.type==='metrics'){log(`metrics ${JSON.stringify(m)}`);showPerformance(m);}

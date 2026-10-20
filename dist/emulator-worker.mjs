@@ -65,7 +65,7 @@ async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
  if(stopping)return;
  emit('build',{version:BUILD_ID,coreSHA256:coreHash,configSHA256:configHash,players:mode==='solo'?1:(msg.players??2),transport:mode==='solo'?'solo':GROUP_PROTOCOL});
  if(mode!=='solo'){
-  const inputDelay=core._aw_group_set_delay?(msg.inputDelay??32):8;if(![8,16,32].includes(inputDelay))throw Error('GROUP_INVALID_DELAY');
+  const inputDelay=core._aw_group_set_delay?(msg.inputDelay??8):8;if(![4,8,16,32].includes(inputDelay))throw Error('GROUP_INVALID_DELAY');
   msg.players??=2;
   if(![2,3,4].includes(msg.players))throw Error('GROUP_INVALID_ROLE');
   transport=await createGroupTransport({origin:msg.relay,host:mode==='host',code:msg.code,manifest:{game:msg.game,players:msg.players,protocol:GROUP_PROTOCOL,coreProtocol:'mgba-gba-link-group-1',rom:romHash,core:coreHash,config:await sha(new TextEncoder().encode(PROFILE+';group-v4-resume;delay='+inputDelay+';players='+msg.players))},front,onRoom:async info=>{role=`p${info.role}`;importBattery(msg.saves);emit('room',{...info,players:msg.players});},onRoster:info=>emit('roster',info),onState:state=>emit('state',{state}),onFailure:fail,onRtt:ms=>emit('rtt',{ms})});

@@ -2184,5 +2184,119 @@
       "inputWaitMsPerFrame": 0.0
     },
     "limits": "Display submits are not physical scanout. Frame blending does not increase emulation speed or remove network waits; ghosting possible. Diagnostic ROM intentionally has a black screen."
+  },
+  "user-rom-low-latency": {
+    "testedAt": "2026-10-20T15:26:41.528Z",
+    "scope": "User-supplied ROM boot/menu with scripted keys; 2 real WASM Workers via WS/WSS; internal Multi-Pak battle not verified; not physical input-to-photon latency",
+    "romSHA256": "b931843d5343a6af499e062db9aee443d9305e44bb32d02f52912d569887b63f",
+    "romBytes": 16777216,
+    "relay": "https://aw-relay-production.up.railway.app",
+    "cases": [
+      {
+        "inputDelay": 32,
+        "bufferMs": 535.77,
+        "clients": [
+          {
+            "role": 0,
+            "complete": true,
+            "frames": 796,
+            "verifiedFrame": 720,
+            "distinctVideoFrames": 616,
+            "medianFps": 42.55,
+            "medianCoreMs": 21.085,
+            "medianInputWaitMs": 0.01,
+            "errors": []
+          },
+          {
+            "role": 1,
+            "complete": true,
+            "frames": 780,
+            "verifiedFrame": 720,
+            "distinctVideoFrames": 591,
+            "medianFps": 38.9,
+            "medianCoreMs": 19.09,
+            "medianInputWaitMs": 0.01,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          }
+        ]
+      },
+      {
+        "inputDelay": 8,
+        "bufferMs": 133.94,
+        "clients": [
+          {
+            "role": 0,
+            "complete": true,
+            "frames": 729,
+            "verifiedFrame": 660,
+            "distinctVideoFrames": 364,
+            "medianFps": 55.4,
+            "medianCoreMs": 12.92,
+            "medianInputWaitMs": 2.64,
+            "errors": []
+          },
+          {
+            "role": 1,
+            "complete": true,
+            "frames": 736,
+            "verifiedFrame": 720,
+            "distinctVideoFrames": 565,
+            "medianFps": 56.7,
+            "medianCoreMs": 10.1,
+            "medianInputWaitMs": 2.04,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          }
+        ]
+      },
+      {
+        "inputDelay": 4,
+        "bufferMs": 66.97,
+        "clients": [
+          {
+            "role": 0,
+            "complete": true,
+            "frames": 736,
+            "verifiedFrame": 720,
+            "distinctVideoFrames": 554,
+            "medianFps": 38.7,
+            "medianCoreMs": 12.97,
+            "medianInputWaitMs": 11.68,
+            "errors": []
+          },
+          {
+            "role": 1,
+            "complete": true,
+            "frames": 740,
+            "verifiedFrame": 720,
+            "distinctVideoFrames": 558,
+            "medianFps": 38.7,
+            "medianCoreMs": 11.11,
+            "medianInputWaitMs": 13.38,
+            "errors": [
+              "PEER_DISCONNECTED"
+            ]
+          }
+        ]
+      }
+    ],
+    "limits": "Scripted menu navigation can reach different scenes in each run. FPS across buffer cases is observational, not an isolated benchmark of buffer impact. No physical input-to-photon measurement or complete Multi-Pak battle.",
+    "diagnosticRegression": {
+      "defaultInputDelay": 8,
+      "defaultPlayers": [
+        2,
+        3,
+        4
+      ],
+      "explicitFourFramePlayers": [
+        2,
+        3,
+        4
+      ],
+      "allPassed": true
+    }
   }
 }

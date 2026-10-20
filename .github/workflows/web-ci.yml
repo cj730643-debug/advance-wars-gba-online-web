@@ -44,4 +44,7 @@ jobs:
       - run: node tests/worker-group-smoke.mjs
         env:
           TEST_RECONNECT: '1'
+      - run: node tests/worker-group-smoke.mjs
+        env:
+          INPUT_DELAY: '4'
       - run: node tests/group-failure-smoke.mjs
