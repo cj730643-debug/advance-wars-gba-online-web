@@ -27,3 +27,7 @@
 #exit-screen-fullscreen{display:none}
 .screen:fullscreen{width:100vw;height:100dvh;aspect-ratio:auto;border:0;border-radius:0;background:#11180e}
 .screen:fullscreen #exit-screen-fullscreen{display:block}
+
+.screen.expanded{position:fixed;inset:0;z-index:1000;width:100vw;height:100dvh;aspect-ratio:auto;border:0;border-radius:0;background:#11180e}
+body.screen-expanded{overflow:hidden}
+.screen.expanded #exit-screen-fullscreen{display:block}
