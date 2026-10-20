@@ -27,6 +27,34 @@ else:
  insertion=marker+'\n\t'+cal+'\n\t'+accept+'\n\t'+needle
  text=text.replace(needle,insertion,1)
 adapter.write_text(text,encoding='utf-8')
+
+# Background-tab throttling can delay a calibration ACK beyond the strict 1 s
+# sample bound. Keep one delayed sample from killing the entire session; the
+# selector uses a trimmed high percentile. The absolute phase deadline must
+# match the 10 s browser WAN profile too.
+def patch_once(path, old, new, label):
+ content=path.read_text(encoding='utf-8')
+ if content.count(old)==1:
+  content=content.replace(old,new,1)
+ elif content.count(new)!=1:
+  raise SystemExit('Unexpected source version while patching '+label)
+ path.write_text(content,encoding='utf-8')
+
+protocol=src/'include/mgba/internal/gba/sio/netplay/protocol-v2.h'
+patch_once(protocol,
+ '#define GBA_LINK_CALIBRATION_MAX_SAMPLE_US 1000000\n',
+ '#define GBA_LINK_CALIBRATION_MAX_SAMPLE_US 10000000\n',
+ 'calibration sample bound')
+patch_once(protocol,
+ '#define GBA_LINK_CALIBRATION_POLICY_VERSION 1\n',
+ '#define GBA_LINK_CALIBRATION_POLICY_VERSION 2\n',
+ 'calibration policy version')
+session=src/'src/gba/sio/netplay/session-v2.c'
+patch_once(session,
+ 'const uint64_t duration = UINT64_C(3000000);',
+ 'const uint64_t duration = UINT64_C(10000000);',
+ 'absolute calibration/accept deadline')
+
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
 cmake=shutil.which('cmake') or str(Path.home()/'.local/bin/cmake');ninja=shutil.which('ninja') or str(Path.home()/'.local/bin/ninja')
