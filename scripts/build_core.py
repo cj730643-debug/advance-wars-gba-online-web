@@ -56,12 +56,13 @@ end=text.find('\n}',start)
 if start<0 or end<0:
  raise SystemExit('Could not locate protocol-v2 absolute deadline helper')
 body=text[start:end]
-old_duration='const uint64_t duration = UINT64_C(3000000);'
-new_duration='const uint64_t duration = UINT64_C(10000000);'
-if body.count(old_duration)==1:
- body=body.replace(old_duration,new_duration,1)
-elif body.count(new_duration)!=1:
- raise SystemExit('Unexpected absolute deadline constant in protocol-v2 helper')
+pattern=r'const uint64_t duration\s*=\s*UINT64_C\(\s*\d+\s*\);'
+matches=list(re.finditer(pattern,body))
+if len(matches)==1:
+ match=matches[0]
+ body=body[:match.start()]+'const uint64_t duration = UINT64_C(10000000);'+body[match.end():]
+elif body.count('const uint64_t duration = UINT64_C(10000000);')!=1:
+ raise SystemExit('Unexpected absolute deadline constant in protocol-v2 helper: '+repr(body[:500]))
 text=text[:start]+body+text[end:]
 session.write_text(text,encoding='utf-8')
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
