@@ -7,8 +7,8 @@ root=Path(__file__).resolve().parent.parent
 sdk=Path(a.emsdk).resolve();src=Path(a.source).resolve()
 if (src/'.git').exists():
  assert subprocess.check_output(['git','-C',str(src),'rev-parse','HEAD'],text=True).strip()=='9e919b0cfbb93af7d1171570dfc6745d00eeebab'
-assert 'mLibretroAWGroupCore' in (src/'src/platform/libretro/libretro.c').read_text(), 'Extract the complete corresponding vendor source from dist/source.zip first'
-assert '_pairSleep' in (src/'src/gba/replicated-pair.c').read_text()
+assert 'mLibretroAWGroupCore' in (src/'src/platform/libretro/libretro.c').read_text(encoding="utf-8"), 'Extract the complete corresponding vendor source from dist/source.zip first'
+assert '_pairSleep' in (src/'src/gba/replicated-pair.c').read_text(encoding="utf-8")
 (root/'logs').mkdir(exist_ok=True);(root/'dist').mkdir(exist_ok=True)
 env=os.environ.copy();env['EMSDK']=str(sdk);env['EM_CONFIG']=str(sdk/'.emscripten')
 cmake=shutil.which('cmake') or str(Path.home()/'.local/bin/cmake');ninja=shutil.which('ninja') or str(Path.home()/'.local/bin/ninja')
