@@ -134,3 +134,8 @@ python scripts/validate.py
 - 房主每 200 ms 发出有界新鲜度凭据，拒收凭据年龄超过 1000 ms 的非零输入。每次物理状态变更增加 revision，释放状态也重发；连续 300 ms 没有有效输入，房主主动清键并要求重新按下，旧 heartbeat 不会重新激活超时的物理按键。
 - 真实 Worker 也执行最长 300 ms 的远端按键租期，UI 卡顿不再无限保持按键。单人/房主本地长按不设该租期。新增「松开全部按键」。网络极差时可能主动中断长按，需要松开后重新按键；保护不等同于消除显示/按键延迟。
 - 回归：`node --test tests/shared-input.test.mjs`、`node tests/shared-input-network-smoke.mjs`、`node tests/shared-app-smoke.mjs`。包含真实 WASM Worker、实际 app 处理函数和真实 WebSocket 丢包/延迟注入，浏览器画面及用户线路未实测。
+
+
+## α 0.9.2：手机连接兼容
+同屏建房、加入和服务诊断改用基础 AbortController + 计时器，不再要求浏览器提供 AbortSignal.any/timeout。外部取消与超时覆盖请求和 JSON 响应体，完成/失败时清理监听器与计时器；仍保留 20 秒连接超时、10 秒诊断超时及用户停止操作。
+`node --test tests/mobile-fetch.test.mjs` 验证接口缺失、响应体超时、主动取消和资源清理。shared-app-smoke 在两个静态接口均不存在的环境中运行实际 app 处理函数，覆盖服务诊断、真实 WASM 房主、无 ROM 加入、交接及恢复。测试使用 DOM/IndexedDB/画面替身；不能代替手机实机音视频验证。

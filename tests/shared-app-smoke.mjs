@@ -6,10 +6,13 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {Worker as Thread} from 'node:worker_threads';
 import {createRelay} from '../relay/server.mjs';
 import {WebSocket} from '../relay/node_modules/ws/wrapper.mjs';
+import {fetchJsonWithTimeout} from '../src/fetch-json.mjs';
 import {createGameInput} from '../src/game-input.mjs';
 import {createSharedSession} from '../src/shared-session.mjs';
 import {relayOrigin} from '../src/transport.mjs';
 import {BUILD_ID} from '../src/version.mjs';
+// Reproduce mobile engines that have AbortController but no static signal helpers.
+Object.defineProperty(AbortSignal,'any',{value:undefined,configurable:true});Object.defineProperty(AbortSignal,'timeout',{value:undefined,configurable:true});
 globalThis.WebSocket=WebSocket;globalThis.createImageBitmap=async()=>({width:240,height:160,close(){}});
 const html=await readFile(new URL('../src/index.html',import.meta.url),'utf8'),source=(await readFile(new URL('../src/app.mjs',import.meta.url),'utf8')).replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(new URL('../src/app.mjs',import.meta.url).href));
 const relay=createRelay(),origin=await relay.listen();let workerCount=0;
@@ -22,14 +25,14 @@ function createApp(saved=new Map()){
  function tx(){const transaction={objectStore:()=>({get(key){const req={};queueMicrotask(()=>{req.result=saved.get(key);req.onsuccess?.();});return req;},put(value,key){saved.set(key,structuredClone(value));queueMicrotask(()=>transaction.oncomplete?.());}})};return transaction;}
  const database={transaction:tx};
  class WorkerShim{constructor(){++workerCount;this.thread=new Thread(new URL('./worker-node-adapter.mjs',import.meta.url));allWorkers.push(this);this.ready=false;this.pending=[];this.thread.on('message',m=>{if(m.type==='adapter_ready'){this.ready=true;for(const args of this.pending)this.thread.postMessage(...args);this.pending=[];}else this.onmessage?.({data:m});});this.thread.on('error',e=>this.onerror?.(e));}postMessage(...args){if(this.ready)this.thread.postMessage(...args);else this.pending.push(args);}terminate(){return this.thread.terminate();}}
- const context=vm.createContext({console,URL,Blob,File,crypto,ArrayBuffer,Uint8Array,Uint8ClampedArray,Int16Array,ImageData:class{constructor(data,w,h){Object.assign(this,{data,w,h});}},setTimeout,clearTimeout,setInterval,clearInterval,queueMicrotask,performance,AbortController,AbortSignal,structuredClone,fetch,Worker:WorkerShim,createGameInput,createSharedSession,relayOrigin,BUILD_ID,createFrameBlender:()=>{throw Error('Unexpected blending');},schedulePaint:f=>{const id=setTimeout(f,0);return()=>clearTimeout(id);},navigator:{userAgent:'Node test'},location:{},addEventListener(type,fn){if(!listeners.has(type))listeners.set(type,[]);listeners.get(type).push(fn);},document:{getElementById:id=>elements.get(id),querySelectorAll:()=>buttons,hidden:false,addEventListener(){},createElement:()=>element('new'),createTextNode:t=>({textContent:t})},indexedDB:{open(){const req={};queueMicrotask(()=>{req.result=database;req.onsuccess?.();});return req;}}});
+ const context=vm.createContext({console,URL,Blob,File,crypto,ArrayBuffer,Uint8Array,Uint8ClampedArray,Int16Array,ImageData:class{constructor(data,w,h){Object.assign(this,{data,w,h});}},setTimeout,clearTimeout,setInterval,clearInterval,queueMicrotask,performance,AbortController,AbortSignal,structuredClone,fetch,Worker:WorkerShim,fetchJsonWithTimeout,createGameInput,createSharedSession,relayOrigin,BUILD_ID,createFrameBlender:()=>{throw Error('Unexpected blending');},schedulePaint:f=>{const id=setTimeout(f,0);return()=>clearTimeout(id);},navigator:{userAgent:'Node test'},location:{},addEventListener(type,fn){if(!listeners.has(type))listeners.set(type,[]);listeners.get(type).push(fn);},document:{getElementById:id=>elements.get(id),querySelectorAll:()=>buttons,hidden:false,addEventListener(){},createElement:()=>element('new'),createTextNode:t=>({textContent:t})},indexedDB:{open(){const req={};queueMicrotask(()=>{req.result=database;req.onsuccess?.();});return req;}}});
  vm.runInContext(source,context,{filename:'app.mjs'});vm.runInContext('sound=false',context);
  return {elements,buttons,saved,context,dispatch(type,e={}){for(const fn of listeners.get(type)||[])fn(e);},run:code=>vm.runInContext(code,context)};
 }
 async function until(check){for(let i=0;i<700;i++){if(check())return;await new Promise(r=>setTimeout(r,10));}throw Error('App flow timeout');}
 let a,b;
 try{
- a=createApp();b=createApp();assert.equal(b.elements.get('join').disabled,false,'guest join is available without ROM');assert.equal(b.elements.get('host').disabled,true);
+ a=createApp();b=createApp();assert.equal(b.elements.get('join').disabled,false,'guest join is available without ROM');assert.equal(b.elements.get('host').disabled,true);await b.elements.get('diagnose').onclick();assert(b.elements.get('diagnostic-result').textContent.startsWith('服务可用'),'mobile diagnostic must not depend on static AbortSignal helpers');
  a.context.chosen=new File([await readFile(new URL('./fixtures/gba-link-continuous.gba',import.meta.url))],'diagnostic.gba');await a.run('selectRom(chosen)');const hash=a.run('romHash');const sentinel={format:'untouched-solo',savedAt:1};a.saved.set(`aw-web-checkpoint-v1:${hash}:solo`,sentinel);
  await a.run("start('shared-host')");await until(()=>!a.elements.get('invite-box').hidden);b.elements.get('join-code').value=a.elements.get('invite-code').textContent;await b.run('startSharedGuest()');
  await until(()=>!a.elements.get('handoff').disabled);assert.equal(workerCount,1);assert(b.buttons.every(x=>x.disabled));assert(a.buttons.every(x=>!x.disabled));
@@ -41,5 +44,5 @@ try{
  await until(()=>a.saved.has(`aw-web-checkpoint-v1:${hash}:shared`));assert.deepEqual(a.saved.get(`aw-web-checkpoint-v1:${hash}:solo`),sentinel,'shared mode must preserve single-player checkpoint');
  b.elements.get('stop').onclick();await until(()=>a.run('sharedState.online[1]')===false);assert.equal(a.run('active'),true);a.elements.get('stop').onclick();await until(()=>!a.run('active'));
  await a.run("start('shared-host')");await until(()=>a.run('saveContext.resumed')===true);assert.equal(a.elements.get('save-slot').value,'shared');a.elements.get('stop').onclick();await until(()=>!a.run('active'));
- const result={testedAt:new Date().toISOString(),singleEmulatorDuringTwoPlayerSession:true,guestJoinWithoutROM:true,UIControlOwnership:true,hostReclaim:true,keyboardDirectionOrder:true,autorepeatAfterBlurBlocked:true,manualRelease:true,sharedCheckpointSeparate:true,hostCheckpointRestored:true,scope:'Real app event handlers and real WASM, DOM/IndexedDB/canvas shims. Browser video and ICE not verified'};await writeFile(new URL('../logs/shared-app-smoke.json',import.meta.url),JSON.stringify(result,null,2));console.log(result);
+ const result={testedAt:new Date().toISOString(),missingAbortSignalAnyAndTimeout:true,mobileHealthCheck:true,singleEmulatorDuringTwoPlayerSession:true,guestJoinWithoutROM:true,UIControlOwnership:true,hostReclaim:true,keyboardDirectionOrder:true,autorepeatAfterBlurBlocked:true,manualRelease:true,sharedCheckpointSeparate:true,hostCheckpointRestored:true,scope:'Real app event handlers and real WASM, DOM/IndexedDB/canvas shims. Browser video and ICE not verified'};await writeFile(new URL('../logs/shared-app-smoke.json',import.meta.url),JSON.stringify(result,null,2));console.log(result);
 }finally{a?.run('shared?.close()');b?.run('shared?.close()');for(const w of allWorkers)await w.terminate();await relay.close();}

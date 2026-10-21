@@ -1,4 +1,5 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
+import {fetchJsonWithTimeout} from './fetch-json.mjs';
 import {createGameInput} from './game-input.mjs';
 import {createSharedSession} from './shared-session.mjs';
 import {relayOrigin} from './transport.mjs';
@@ -138,7 +139,7 @@ $('copy-code').onclick=async()=>{try{await navigator.clipboard.writeText($('invi
 function syncSmoothing(){$('frame-smoothing').textContent=`补帧 ${smoothing?'开':'关'}`;$('frame-smoothing').setAttribute('aria-pressed',String(smoothing));$('frame-smoothing-note').hidden=!smoothing;}
 $('frame-smoothing').onclick=()=>{cancelPaint?.();cancelPaint=null;if(pendingVideo&&worker===pendingVideo.w)pendingVideo.w.postMessage({type:'video-ack'});pendingVideo=null;frameBlender?.stop();smoothing=!smoothing;syncSmoothing();rememberPreferences();};
 $('reconnect-session').onclick=()=>worker?.postMessage({type:'reconnect'});
-$('diagnose').onclick=async()=>{const b=$('diagnose');b.disabled=true;try{const origin=relayOrigin($('relay').value),start=performance.now();const r=await fetch(origin+'/health',{credentials:'omit',signal:AbortSignal.timeout(10000)});const body=await r.json();if(!r.ok||body.status!=='ok'||body.protocol!=='aw-relay-1')throw Error('INVALID_RELAY_RESPONSE');$('diagnostic-result').textContent=`服务可用 · ${Math.round(performance.now()-start)} ms · aw-relay-1`;}catch(e){$('diagnostic-result').textContent=`检测失败：${errors[e.message]||'无法访问服务，请检查网络与跨域配置。'}`;}finally{b.disabled=false;}};
+$('diagnose').onclick=async()=>{const b=$('diagnose');b.disabled=true;try{const origin=relayOrigin($('relay').value),start=performance.now();const {response:r,body}=await fetchJsonWithTimeout(origin+'/health',{credentials:'omit',timeoutMs:10000});if(!r.ok||body.status!=='ok'||body.protocol!=='aw-relay-1')throw Error('INVALID_RELAY_RESPONSE');$('diagnostic-result').textContent=`服务可用 · ${Math.round(performance.now()-start)} ms · aw-relay-1`;}catch(e){$('diagnostic-result').textContent=`检测失败：${errors[e.message]||'无法访问服务，请检查网络与跨域配置。'}`;}finally{b.disabled=false;}};
 $('download-log').onclick=()=>download(`AW Web ${BUILD_ID}\nUser agent: ${navigator.userAgent}\n${lines.join('\n')}`,`aw-web-diagnostic-${Date.now()}.txt`,'text/plain;charset=utf-8');
 $('help-open').onclick=()=>{clearKeys();$('help-dialog').showModal();};$('help-close').onclick=()=>$('help-dialog').close();
 $('import-save').onclick=()=>$('save-file').click();$('save-file').onchange=async e=>{if(active||!file)return;const b=await e.target.files?.[0]?.arrayBuffer();if(!b)return;if(b.byteLength<512||b.byteLength>1024*1024){showError('SAVE_SIZE_MISMATCH');return;}storeSave(romHash,$('save-slot').value,b);if($('save-slot').value==='solo'){$('save-status').textContent='已导入游戏内存档，请点击「从游戏内存档启动」以使用它。';}e.target.value='';};

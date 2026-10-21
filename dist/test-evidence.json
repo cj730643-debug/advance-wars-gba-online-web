@@ -2564,5 +2564,25 @@
     },
     "unitTests": 6,
     "browser": "Not verified in browser; CUA unavailable in this session."
+  },
+  "mobile-abort-compat": {
+    "tests": 4,
+    "staticSignalHelpersAbsent": true,
+    "app": {
+      "testedAt": "2026-10-21T09:41:52.834Z",
+      "missingAbortSignalAnyAndTimeout": true,
+      "mobileHealthCheck": true,
+      "singleEmulatorDuringTwoPlayerSession": true,
+      "guestJoinWithoutROM": true,
+      "UIControlOwnership": true,
+      "hostReclaim": true,
+      "keyboardDirectionOrder": true,
+      "autorepeatAfterBlurBlocked": true,
+      "manualRelease": true,
+      "sharedCheckpointSeparate": true,
+      "hostCheckpointRestored": true,
+      "scope": "Real app event handlers and real WASM, DOM/IndexedDB/canvas shims. Browser video and ICE not verified"
+    },
+    "scope": "Request and actual app handler compatibility regression. No physical phone or browser video claim."
   }
 }

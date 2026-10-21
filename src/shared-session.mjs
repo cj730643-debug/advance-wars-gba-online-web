@@ -1,4 +1,5 @@
 // Copyright 2026 Advance Wars GBA Online contributors. MPL-2.0.
+import {fetchJsonWithTimeout} from './fetch-json.mjs';
 import {createRemoteInput} from './remote-input.mjs';
 import {relayOrigin} from './transport.mjs';
 export const SHARED_PROTOCOL='aw-shared-screen-1';
@@ -6,8 +7,8 @@ export const SHARED_PROTOCOL='aw-shared-screen-1';
 // picture uses the same canvas; a bounded image relay works when ICE fails.
 export async function createSharedSession({signal:abortSignal,origin,host,code,canvas,video,audioStream,onState=()=>{},onKeys=()=>{},onInputReset=()=>{},onFrame=()=>{},onStatus=()=>{},onFailure=()=>{},onRoom=()=>{},onRtt=()=>{}}){
  origin=relayOrigin(origin);code=(code||'').trim().toUpperCase();if(!host&&!/^[A-HJ-NP-Z2-9]{8}$/.test(code))throw Error('INVALID_CODE');
- const res=await fetch(origin+(host?'/v3/rooms':`/v3/rooms/${code}/join`),{method:'POST',headers:{'Content-Type':'application/json'},credentials:'omit',body:JSON.stringify({protocol:SHARED_PROTOCOL,inputVersion:2}),signal:abortSignal?AbortSignal.any([abortSignal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000)});
- const auth=await res.json();if(!res.ok)throw Error(auth.error||'TRANSPORT_ERROR');if(auth.protocol!==SHARED_PROTOCOL||auth.role!==(host?0:1)||typeof auth.token!=='string'||typeof auth.resumeToken!=='string')throw Error('PROTOCOL_MISMATCH');
+ const {response:res,body:auth}=await fetchJsonWithTimeout(origin+(host?'/v3/rooms':`/v3/rooms/${code}/join`),{method:'POST',headers:{'Content-Type':'application/json'},credentials:'omit',body:JSON.stringify({protocol:SHARED_PROTOCOL,inputVersion:2}),signal:abortSignal,timeoutMs:20000});
+ if(!res.ok)throw Error(auth.error||'TRANSPORT_ERROR');if(auth.protocol!==SHARED_PROTOCOL||auth.role!==(host?0:1)||typeof auth.token!=='string'||typeof auth.resumeToken!=='string')throw Error('PROTOCOL_MISMATCH');
  let ws,closed=false,ready=false,owner=0,epoch=0,online=[false,false],keys=0,retry,admission,disconnected=0,pc,stream,ice=[],direct=false,encoding=false,decodeBusy=false,pendingFrame=null,frameCount=0,lastReport=performance.now(),lastSeen=Date.now(),pingAt=0,nonce=0,negotiating=false,inputRevision=0,inputPulse=0,inputReady=false,capabilityTimer,lastInputPulse=-Infinity;
  const remoteInput=createRemoteInput({apply:onKeys,onReset:m=>{sendInputMessage({type:'input-reset',...m});onStatus('远端输入超时，已松开按键，请对方重新按键');}});
  let resolveReady,rejectReady;const admitted=new Promise((r,j)=>{resolveReady=r;rejectReady=j;});admitted.catch(()=>{});
