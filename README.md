@@ -126,3 +126,11 @@ python scripts/validate.py
 ## α 0.9 同屏验证
 `npm test --prefix relay` 覆盖同屏准入、两人容量、控制权、过期输入、按键租期、断线恢复及越权媒体。`node tests/shared-session-smoke.mjs` 使用一个真实 WASM Worker 和两个真实 WebSocket 客户端；`node tests/shared-app-smoke.mjs` 执行实际网页事件、控件权限及存档恢复，DOM、IndexedDB、图片编解码使用测试替身。
 可设置 `SHARED_ORIGIN=https://aw-relay-production.up.railway.app` 运行线上同屏传输测试。本次新加坡线上通过，但真实浏览器自动化环境超时，WebRTC ICE、实际画面/声音和商业游戏热座完整对局尚未验证。
+
+
+## α 0.9.1：同屏按键防失控
+- 键盘和每个 pointer 独立记录，重复 keydown 不重新按下；方向冲突时只输出最后按下的一个方向。失焦、打开帮助、切换控制者会清空物理输入状态。
+- 新客户端通过现有已认证双人 signal 通道协商 inputProtocol=2。房主仍依据服务器的唯一控制者及 epoch 校验来源权限；两端版本不兼容时要求刷新，不接受旧式无时效 keys。无需更改现有中继。
+- 房主每 200 ms 发出有界新鲜度凭据，拒收凭据年龄超过 1000 ms 的非零输入。每次物理状态变更增加 revision，释放状态也重发；连续 300 ms 没有有效输入，房主主动清键并要求重新按下，旧 heartbeat 不会重新激活超时的物理按键。
+- 真实 Worker 也执行最长 300 ms 的远端按键租期，UI 卡顿不再无限保持按键。单人/房主本地长按不设该租期。新增「松开全部按键」。网络极差时可能主动中断长按，需要松开后重新按键；保护不等同于消除显示/按键延迟。
+- 回归：`node --test tests/shared-input.test.mjs`、`node tests/shared-input-network-smoke.mjs`、`node tests/shared-app-smoke.mjs`。包含真实 WASM Worker、实际 app 处理函数和真实 WebSocket 丢包/延迟注入，浏览器画面及用户线路未实测。

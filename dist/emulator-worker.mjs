@@ -28,7 +28,7 @@ function createIncomingQueue(){
  return attachPacketWait(queue);
 }
 function fail(reason){if(!fatal&&!stopping){fatal=reason;front.terminal=true;emit('error',{reason});}}
-let pageHidden=false;
+let pageHidden=false,inputDeadline=0;
 const front={keys:0,terminal:false,incoming:createIncomingQueue(),audioEnabled:true,
  notice(text,error){const detail=String(text).slice(0,2000);emit('log',{text:detail});if(!error)return;if(mode==='solo'){emit('log',{text:`single-player core diagnostic (non-fatal): ${detail}`});return;}fail(/calibrat.*(timeout|timed out)/i.test(detail)?'CORE_CALIBRATION_TIMEOUT':'CORE_SYNC_FAILURE');},
  video(bytes,w,h){++frames;if(pageHidden&&frames%60!==0)return;videoMailbox.push({buffer:bytes.buffer,w,h});},
@@ -76,6 +76,7 @@ async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
  importBattery(msg.saves);restoreCheckpoint(msg.resume);soloPlayable=true;emit('state',{state:'playing_solo'});
  let next=performance.now(),lastMetrics=next,lastSave=next,lastCheckpoint=0,announced=false,windowFrame=frames,runMs=0,snapshotMs=0;
  while(!stopping&&!front.terminal){
+  if(inputDeadline&&performance.now()>=inputDeadline){inputDeadline=0;front.keys=0;emit('input-released',{reason:'LEASE_EXPIRED'});}
   if(paused&&mode==='solo'){if(exportRequested){battery();exportRequested=false;}if(checkpointRequested||performance.now()-lastCheckpoint>=2000){checkpoint();checkpointRequested=false;lastCheckpoint=performance.now();}await sleep(50);next=performance.now();continue;}
   const runStart=performance.now();const ok=await core.ccall('aw_run','number',[],[],{async:true});runMs+=performance.now()-runStart;if(!ok)break;
   if(core._aw_ready()){++afterReady;if(!announced){announced=true;emit('state',{state:'playing_online'});}}
@@ -88,4 +89,4 @@ async function boot(msg){if(running)return;running=true;mode=msg.mode;try{
  }catch(e){if(!stopping)fail(e.message||'UNKNOWN_ERROR');}
  finally{front.keys=0;if(core){if(soloPlayable&&!fatal)checkpoint();await core.ccall('aw_stop',null,[],[],{async:true});if(mode!=='solo'||soloPlayable)battery();metrics();}transport?.close();emit('stopped',{reason:fatal||'SESSION_STOPPED'});}
 }
-globalThis.onmessage=({data:m})=>{switch(m.type){case'start':void boot(m);break;case'reconnect':transport?.retry?.();break;case'video-ack':videoMailbox.acknowledge();break;case'keys':front.keys=m.keys&0xffff;break;case'audio':front.audioEnabled=!!m.enabled;break;case'pause':paused=!!m.paused;front.keys=0;checkpointRequested=true;break;case'visibility':pageHidden=!!m.hidden;checkpointRequested=pageHidden;break;case'checkpoint':checkpointRequested=true;break;case'export':exportRequested=true;break;case'stop':stopping=true;front.terminal=true;front.keys=0;front.incoming.wake?.();transport?.close();break;}};
+globalThis.onmessage=({data:m})=>{switch(m.type){case'start':void boot(m);break;case'reconnect':transport?.retry?.();break;case'video-ack':videoMailbox.acknowledge();break;case'keys':front.keys=m.keys&0xffff;inputDeadline=Number.isFinite(m.leaseMs)&&m.leaseMs>0?performance.now()+Math.min(500,m.leaseMs):0;break;case'audio':front.audioEnabled=!!m.enabled;break;case'pause':paused=!!m.paused;front.keys=0;checkpointRequested=true;break;case'visibility':pageHidden=!!m.hidden;checkpointRequested=pageHidden;break;case'checkpoint':checkpointRequested=true;break;case'export':exportRequested=true;break;case'stop':stopping=true;front.terminal=true;front.keys=0;front.incoming.wake?.();transport?.close();break;}};

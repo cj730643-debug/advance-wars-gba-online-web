@@ -2538,5 +2538,31 @@
       "scope": "Real app event handlers and real WASM, DOM/IndexedDB/canvas shims. Browser video and ICE not verified"
     },
     "browserVerification": "Blocked: CUA tab creation and reset timed out. No new browser/WebRTC/commercial gameplay claim."
+  },
+  "shared-input-fix": {
+    "network": {
+      "testedAt": "2026-10-21T08:01:04.005Z",
+      "lostReleaseSafetyMs": 345,
+      "expiredHoldDidNotRearm": true,
+      "queuedInputDelayMs": 1150,
+      "queuedPressesDiscarded": true,
+      "freshPressWorksAfterRecovery": true,
+      "scope": "Actual shared-session source, real HTTP/WebSocket server, injected dropped input messages and delayed host receives; no browser/gameplay claim"
+    },
+    "app": {
+      "testedAt": "2026-10-21T08:00:33.341Z",
+      "singleEmulatorDuringTwoPlayerSession": true,
+      "guestJoinWithoutROM": true,
+      "UIControlOwnership": true,
+      "hostReclaim": true,
+      "keyboardDirectionOrder": true,
+      "autorepeatAfterBlurBlocked": true,
+      "manualRelease": true,
+      "sharedCheckpointSeparate": true,
+      "hostCheckpointRestored": true,
+      "scope": "Real app event handlers and real WASM, DOM/IndexedDB/canvas shims. Browser video and ICE not verified"
+    },
+    "unitTests": 6,
+    "browser": "Not verified in browser; CUA unavailable in this session."
   }
 }
