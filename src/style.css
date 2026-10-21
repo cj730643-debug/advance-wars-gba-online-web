@@ -35,3 +35,6 @@ body.screen-expanded{overflow:hidden}
 .reconnect-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}.reconnect-panel button{border:1px solid currentColor;border-radius:5px;background:transparent;color:inherit;white-space:nowrap;padding:7px 11px}
 
 .game-toolbar>div{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px}
+
+/* Shared video uses the exact same screen and control overlay. */
+#shared-video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;background:#000;pointer-events:none;z-index:1}#shared-video[hidden]{display:none}#shared-controls{padding:12px 0}#shared-controls>button{margin:4px 4px 4px 0}#controller-status{font-weight:700;color:var(--ink,#263323)}

@@ -2451,5 +2451,92 @@
       8,
       32
     ]
+  },
+  "singapore-relay-route": {
+    "testedAt": "2026-10-21T06:33:14.227Z",
+    "deploymentId": "27faded8-8ffb-4d2e-9e28-3ac64008c7f7",
+    "deploymentStatus": "SUCCESS",
+    "region": "asia-southeast1-eqsg3a",
+    "observedUpstreamZone": "railway/asia-southeast1-eqsg3a",
+    "healthStatus": 200,
+    "scope": "Real browser Worker code in Node Workers; self-authored CC0 ROM; commercial games unverified",
+    "limits": "Test runner is outside the users actual China/proxy route. No claim of user RTT improvement, physical display FPS or continuous 60 FPS. User proxy DIRECT settings still require user action.",
+    "cases": [
+      {
+        "players": 2,
+        "allComplete": true,
+        "allResumed": true,
+        "verifiedFrames": [
+          420,
+          420
+        ]
+      },
+      {
+        "players": 3,
+        "allComplete": true,
+        "allResumed": true,
+        "verifiedFrames": [
+          360,
+          420,
+          420
+        ]
+      },
+      {
+        "players": 4,
+        "allComplete": true,
+        "allResumed": true,
+        "verifiedFrames": [
+          360,
+          420,
+          420,
+          420
+        ]
+      }
+    ]
+  },
+  "shared-screen": {
+    "shared-session-local": {
+      "testedAt": "2026-10-21T06:53:40.704Z",
+      "origin": "http://127.0.0.1:37927",
+      "protocol": "aw-shared-screen-1",
+      "workerCount": 1,
+      "guestRomRequired": false,
+      "forwardedPictures": 14,
+      "renderedHostFrames": 112,
+      "guestKeysReachedHost": true,
+      "handoffBothWays": true,
+      "guestRejoinSameRoom": true,
+      "hostContinuesWithoutGuest": true,
+      "hostCheckpointGenerated": true,
+      "hostMeasuredFPS": 60.7,
+      "scope": "Real WASM diagnostic ROM, real HTTP/WebSocket transport, canvas/decoding shims; browser WebRTC and commercial gameplay not verified"
+    },
+    "shared-session-public": {
+      "testedAt": "2026-10-21T06:56:52.533Z",
+      "origin": "https://aw-relay-production.up.railway.app",
+      "protocol": "aw-shared-screen-1",
+      "workerCount": 1,
+      "guestRomRequired": false,
+      "forwardedPictures": 34,
+      "renderedHostFrames": 3483,
+      "guestKeysReachedHost": true,
+      "handoffBothWays": true,
+      "guestRejoinSameRoom": true,
+      "hostContinuesWithoutGuest": true,
+      "hostCheckpointGenerated": true,
+      "hostMeasuredFPS": 59.7,
+      "scope": "Real WASM diagnostic ROM, real HTTP/WebSocket transport, canvas/decoding shims; browser WebRTC and commercial gameplay not verified"
+    },
+    "shared-app-smoke": {
+      "testedAt": "2026-10-21T06:56:43.150Z",
+      "singleEmulatorDuringTwoPlayerSession": true,
+      "guestJoinWithoutROM": true,
+      "UIControlOwnership": true,
+      "hostReclaim": true,
+      "sharedCheckpointSeparate": true,
+      "hostCheckpointRestored": true,
+      "scope": "Real app event handlers and real WASM, DOM/IndexedDB/canvas shims. Browser video and ICE not verified"
+    },
+    "browserVerification": "Blocked: CUA tab creation and reset timed out. No new browser/WebRTC/commercial gameplay claim."
   }
 }

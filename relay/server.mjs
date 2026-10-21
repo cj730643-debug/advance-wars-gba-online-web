@@ -5,6 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 
+export const SHARED_PROTOCOL = 'aw-shared-screen-1';
 export const PROTOCOL = 'aw-relay-1';
 export const GROUP_PROTOCOL = 'aw-relay-group-1';
 export const RESUMABLE_GROUP_PROTOCOL = 'aw-relay-group-2';
@@ -82,6 +83,10 @@ export function createRelay(options = {}) {
   function publicCredential(room, p) {
     return { code: room.code, role: p.role, token: p.token, expiresInMs: authTtl, protocol: room.manifest.protocol, players: room.players.length,...(resumable(room)?{resumeToken:p.resumeToken,resumeGraceMs:resumeGrace}:{}) };
   }
+  const isShared=r=>r.manifest.protocol===SHARED_PROTOCOL;
+  function sharedState(r){for(const p of r.players)send(p?.ws,{type:'shared-state',owner:r.owner,epoch:r.epoch,online:r.players.map(p=>!!p?.ws)});}
+  function sharedRelease(r){r.held=0;send(r.players[0]?.ws,{type:'keys',keys:0,epoch:r.epoch});}
+  function sharedOwner(r,owner){sharedRelease(r);r.owner=owner;++r.epoch;sharedState(r);}
   const resumable=r=>r.manifest.protocol===RESUMABLE_GROUP_PROTOCOL;
   function prune(r){for(const sender of r.players){if(!sender)continue;const floor=r.players.reduce((n,p,i)=>i===sender.role?n:!p?1n:p.received[sender.role]<n?p.received[sender.role]:n,sender.seq);while(sender.history.length&&sender.history[0].seq<floor){const bytes=sender.history.shift().data.length;sender.historyBytes-=bytes;r.replayBytes-=bytes;retainedBytes-=bytes;}}}
   function received(r,p,list){
@@ -96,6 +101,7 @@ export function createRelay(options = {}) {
   }
   function detach(ws){
     const r=ws.room,p=ws.player;if(!r||r.ended||p.ws!==ws)return;
+    if(isShared(r)){p.ws=null;p.disconnectedAt=clock();sharedOwner(r,0);return;}
     if(!resumable(r)){end(r,'PEER_DISCONNECTED');return;}
     p.ws=null;p.disconnectedAt=clock();announce(r);
   }
@@ -103,7 +109,12 @@ export function createRelay(options = {}) {
     const now = clock();
     for (const r of rooms.values()) {
       if (now - r.created >= maxLifetime || (!r.ready && now >= r.expires)) end(r, 'ROOM_EXPIRED');
-      else if (resumable(r)){
+      else if(isShared(r)){
+        if(!r.players[0].everConnected&&now>=r.players[0].expires){end(r,'TOKEN_EXPIRED');continue;}
+        if(r.held&&now-r.keyAt>800)sharedRelease(r);
+        if(r.players[0]?.disconnectedAt!==null&&r.players[0]?.disconnectedAt!==undefined&&now-r.players[0].disconnectedAt>=resumeGrace){end(r,'RECONNECT_TIMEOUT');continue;}
+        for(const p of r.players)if(p?.ws&&now-p.lastSeen>=heartbeat){const ws=p.ws;detach(ws);ws.terminate();}
+      }else if (resumable(r)){
         if(r.players.some(p=>p?.disconnectedAt!==null&&p?.disconnectedAt!==undefined&&now-p.disconnectedAt>=resumeGrace)){end(r,'RECONNECT_TIMEOUT');continue;}
         for(const p of r.players)if(p?.ws&&now-p.lastSeen>=heartbeat){const ws=p.ws;detach(ws);ws.terminate();}
         if(r.players.some(p=>p&&!p.everConnected&&!p.ws&&now>=p.expires))end(r,'TOKEN_EXPIRED');
@@ -124,7 +135,7 @@ export function createRelay(options = {}) {
       if (!allowedOrigins.has(req.headers.origin) || !['GET', 'POST'].includes(req.headers['access-control-request-method']) || headers.some(h => h !== 'content-type')) return reply(403, { error: 'ORIGIN_REJECTED' });
       res.writeHead(204, { 'Access-Control-Allow-Origin': req.headers.origin, 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '600', 'Vary': 'Origin' }); return res.end();
     }
-    if (req.url === '/health' && req.method === 'GET') return reply(200, { status: 'ok', protocol: PROTOCOL, groupProtocol: GROUP_PROTOCOL,resumableGroupProtocol:RESUMABLE_GROUP_PROTOCOL,resumeGraceMs:resumeGrace });
+    if (req.url === '/health' && req.method === 'GET') return reply(200, { status: 'ok', protocol: PROTOCOL, groupProtocol: GROUP_PROTOCOL,resumableGroupProtocol:RESUMABLE_GROUP_PROTOCOL,resumeGraceMs:resumeGrace,sharedProtocol:SHARED_PROTOCOL });
     if (req.method !== 'POST') return reply(404, { error: 'NOT_FOUND' });
     // Trust the TCP peer only. A reverse proxy must also impose its own per-IP
     // limits; user-controlled X-Forwarded-For is never trusted here.
@@ -134,6 +145,20 @@ export function createRelay(options = {}) {
       for await (const chunk of req) {
         body += chunk.toString('utf8');
         if (Buffer.byteLength(body) > 4096) { reply(413, { error: 'BODY_TOO_LARGE' }); req.destroy(); return; }
+      }
+      if(req.url.startsWith('/v3/')){
+        const m=JSON.parse(body);sweep();
+        if(m.protocol!==SHARED_PROTOCOL) return reply(400,{error:'PROTOCOL_MISMATCH'});
+        if(req.url==='/v3/rooms'){
+          if(rooms.size>=maxRooms)return reply(503,{error:'CAPACITY'});
+          let c;do{c=code();}while(rooms.has(c));
+          const r={code:c,manifest:{protocol:SHARED_PROTOCOL},players:[credential(0),null],created:clock(),expires:clock()+ttl,ready:true,ended:false,owner:0,epoch:1,held:0,keyAt:clock()};rooms.set(c,r);
+          return reply(201,{...publicCredential(r,r.players[0]),resumeToken:r.players[0].resumeToken});
+        }
+        const match=/^\/v3\/rooms\/([A-Z2-9]{8})\/join$/.exec(req.url),r=match&&rooms.get(match[1]);
+        if(!r||!isShared(r))return reply(404,{error:'INVALID_CODE'});
+        const old=r.players[1];if(old&&(old.ws||(!old.everConnected&&clock()<old.expires)))return reply(409,{error:'ROOM_FULL'});
+        r.players[1]=credential(1);return reply(200,{...publicCredential(r,r.players[1]),resumeToken:r.players[1].resumeToken});
       }
       const group = req.url.startsWith('/v2/');
       const m = manifest(JSON.parse(body), group);
@@ -172,7 +197,7 @@ export function createRelay(options = {}) {
   wss.on('connection', ws => {
     sockets.add(ws); ws.openedAt = clock();
     const rate = new Map();
-    ws.on('error', e => {if(ws.room&&!resumable(ws.room))end(ws.room,'TRANSPORT_ERROR');else if(e.code?.startsWith('WS_ERR_'))end(ws.room,'PROTOCOL_ERROR');else detach(ws);});
+    ws.on('error', e => {if(ws.room&&!isShared(ws.room)&&!resumable(ws.room))end(ws.room,'TRANSPORT_ERROR');else if(e.code?.startsWith('WS_ERR_'))end(ws.room,'PROTOCOL_ERROR');else detach(ws);});
     ws.on('close', () => { sockets.delete(ws);detach(ws); });
     ws.on('message', (data, binary) => {
       try {
@@ -185,6 +210,11 @@ export function createRelay(options = {}) {
           const r = rooms.get(a.code);
           if (!r || r.ended || (!Number.isInteger(a.role) || a.role<0 || a.role>=r.players.length)) throw new Error('INVALID_AUTH');
           const p = r.players[a.role];
+          if(isShared(r)){
+            if(!p||(a.resume!==true&&p.ws)||(a.resume===true?p.resumeToken!==a.token:!p.token||p.token!==a.token||clock()>=p.expires))throw Error('INVALID_AUTH');
+            const old=p.ws;if(old&&old!==ws)old.terminate();p.token='';p.ws=ws;p.lastSeen=clock();p.disconnectedAt=null;p.everConnected=true;ws.player=p;ws.room=r;
+            send(ws,{type:'shared-ready',role:p.role});sharedState(r);return;
+          }
           if(resumable(r)){
             const resume=a.resume===true;
             if(!p||(resume?p.resumeToken!==a.token:!p.token||p.token!==a.token||p.ws)||(!p.everConnected&&clock()>=p.expires)||(p.disconnectedAt!==null&&clock()-p.disconnectedAt>=resumeGrace))throw Error('INVALID_AUTH');
@@ -208,6 +238,34 @@ export function createRelay(options = {}) {
         const r = ws.room; const p = ws.player;
         if (r.ended||p.ws!==ws) return;
         p.lastSeen = clock();
+        if(isShared(r)){
+          const peer=r.players[1-p.role]?.ws;
+          if(binary){
+            if(p.role!==0)throw Error('BAD_CONTROL');
+            // WebP/JPEG images only, bounded by the WebSocket payload cap. Drop
+            // pictures instead of buffering seconds of stale video.
+            if(data.length<12||data.length>65548)throw Error('BAD_PACKET');
+            const webp=data.toString('ascii',0,4)==='RIFF'&&data.toString('ascii',8,12)==='WEBP',jpg=data[0]===255&&data[1]===216;
+            if(!webp&&!jpg)throw Error('BAD_PACKET');
+            if(peer?.readyState===WebSocket.OPEN&&peer.bufferedAmount<65548)peer.send(data,{binary:true});return;
+          }
+          if(data.length>32768)throw Error('BAD_CONTROL');const m=JSON.parse(data.toString());
+          if(m.type==='ping'){if(!Number.isSafeInteger(m.nonce))throw Error('BAD_CONTROL');send(ws,{type:'pong',nonce:m.nonce});return;}
+          if(m.type==='leave'){if(p.role===0)end(r,'SESSION_STOPPED');else{detach(ws);ws.close();}return;}
+          if(m.type==='signal'){
+            if(!m.signal||JSON.stringify(m.signal).length>30000)throw Error('BAD_CONTROL');send(peer,{type:'signal',signal:m.signal});return;
+          }
+          if(m.type==='media'){if(p.role===1&&typeof m.direct==='boolean')send(peer,{type:'media',direct:m.direct});return;}
+          if(m.type==='keys'){
+            if(p.role!==r.owner||m.epoch!==r.epoch)return;
+            if(!Number.isInteger(m.keys)||m.keys<0||(m.keys&~0xDFD)!==0)throw Error('BAD_CONTROL');
+            r.held=m.keys;r.keyAt=clock();send(r.players[0]?.ws,{type:'keys',keys:m.keys,epoch:r.epoch});return;
+          }
+          if(m.type==='handoff'){if(p.role===r.owner&&m.epoch===r.epoch&&peer?.readyState===WebSocket.OPEN)sharedOwner(r,1-p.role);return;}
+          if(m.type==='reclaim'){if(p.role===0)sharedOwner(r,0);return;}
+          if(m.type==='request'){if(p.role!==r.owner)send(r.players[r.owner]?.ws,{type:'request'});return;}
+          throw Error('BAD_CONTROL');
+        }
         if (!binary) {
           if (data.length > 256) throw new Error('BAD_CONTROL');
           const msg = JSON.parse(data.toString());
@@ -237,7 +295,7 @@ export function createRelay(options = {}) {
       }
     });
   });
-  const interval = setInterval(sweep, Math.min(1000, heartbeat / 2)); interval.unref();
+  const interval = setInterval(sweep, Math.min(200, heartbeat / 2)); interval.unref();
   return {
     server, rooms, sweep,
     async listen(port = 0, host = '127.0.0.1') {
